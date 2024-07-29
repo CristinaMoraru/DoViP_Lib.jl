@@ -1,0 +1,7 @@
+name = "DoViP_Lib"
+uuid = "22db7568-0fef-4816-86c4-f780d51317b9"
+authors = ["Cristina Moraru"]
+version = "0.8.0"
+
+[compat]
+julia = "1.10"
