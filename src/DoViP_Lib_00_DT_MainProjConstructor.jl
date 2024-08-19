@@ -554,7 +554,7 @@ function ProjSViP_fun(args::Vector{String})
     println(typeof(sample_set))
 
     # min_contig_length 
-    min_contig_length = extract_args(args, "min_contig_length", Int64, 500, 1, 10000000)
+    min_contig_length = extract_args(args, "min_contig_length", Int64, 1000, 1000, 10000000)
 
     # folders
     #pd_prefix = "$(extract_args(args, "pd_prefix"))/"
@@ -865,12 +865,12 @@ function ProjSViP_fun(args::Vector{String})
 
     #region integrated viruses
     if length(integrated_viruses_to_agregate_df) >= 1 #&& length(integrated_viruses_to_agregate_fna) >= 1
-        checkV_Integrated = initialize_step(dosteps, "checkV_Integrated", set_ProjCheckVIntegrated, (pd, integrated_viruses_to_agregate_df, predictors_Int, args, sampleName), proj.checkV_Integrated, cont)
+        checkV_Integrated = initialize_step(dosteps, "checkV_Integrated", set_ProjCheckVIntegrated, (pd, integrated_viruses_to_agregate_df, predictors_all, args, sampleName), proj.checkV_Integrated, cont)
         final_thresholding_Integrated = initialize_step(dosteps, "final_thresholding_Integrated", 
                                                         set_ProjFinalThresholding, 
-                                                        (pd, args, "I-03", checkV_Integrated.merged_integrated_fna, checkV_Integrated.postcheckV2_integrated_df_p, predictors_Int, sampleName),
+                                                        (pd, args, "I-03", checkV_Integrated.merged_integrated_fna, checkV_Integrated.postcheckV2_integrated_df_p, predictors_all, sampleName),
                                                         proj.final_thresholding_Integrated, cont)
-    else    
+    else     
         println("No predictor for integrated viruses is activated. If that was not your intention, check your input parameters.")  
         checkV_Integrated = missing
         final_thresholding_Integrated = missing

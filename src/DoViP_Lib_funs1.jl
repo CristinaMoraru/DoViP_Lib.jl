@@ -313,14 +313,7 @@ end
 
 function post_checkv1_integrated!(proj::ProjCheckVIntegrated, agreg_df::DataFrame, parentD::String)
     
-    # aggreg_df_p = "/data3/CLM_projs/TEST_Workflows/DoViP_Sulfitobacter_M_183_191_265/I-02_checkV_Integrated/I-02_00_aggregated_integrated_virus_All_contigs.tsv"
-    # agreg_df = CSV.read(aggreg_df_p, DataFrame; delim = '\t', header = 1)
-    # fp = "/data3/CLM_projs/TEST_Workflows/DoViP_Sulfitobacter_M_183_191_265/I-02_checkV_Integrated/I-02_01_checkVIntegrated_1/proviruses.fna" |> FnaP
-    # df = return_provir_CheckV_coord(fp)
-    #tj = outerjoin(agreg_df, df, on = [:provirID1])
-    # agregDFj = tj
-
-    # find start and ends of prophages from checkV output
+     # find start and ends of prophages from checkV output
     if filesize("$(parentD)/$(proj.checkV1_out_provir_fna.p)") >0  #find if checkV detected any prophages at all
         df = return_provir_CheckV_coord(proj.checkV1_out_provir_fna.p, parentD)
 
@@ -750,7 +743,7 @@ function postcheckV_nonintegrated!(proj::ProjCheckVNonintegrated, mergeddf::Data
         end
     end
     
-    println(contigs_intbranch)
+    #println(contigs_intbranch)
 
     if c > 0 && isfile("$(parentD)/$(proj.checkV_out_provir_fna.p)")
 

@@ -298,7 +298,7 @@ function printProjSViP(outp::String, proj::ProjSViP)
         sbatch --mem: $(proj.checkV_Integrated.checkV1.sbatch_mem)
 
     Final report file from this step:
-        table file (including merged overlaping viruses and their CheckV statistics): $(proj.checkV_Integrated.postcheckV2_integrated_df_p)"
+        table file (including merged overlaping viruses and their CheckV statistics): $(proj.checkV_Integrated.postcheckV2_integrated_df_p.p)"
     else
         checkV_int_params = "   missing"
     end
