@@ -79,14 +79,16 @@ end =#
 Base.@kwdef mutable struct ProjCheckVNonintegrated <: BioinfProj
     pd::String
     input_dfs_2_aggregate::Vector{TableP}
-    output_aggredated_df::TableP
+    output_aggregated_df::TableP
     output_aggregated_fna::FnaP
     checkV::WrapCmd{RunCheckVCmd}
-    checkV_out_nonintegrated_df::TableP
+    checkV_out_nonintegrated_summary_df::TableP
+    checkV_out_nonintegrated_complete_df::TableP
     checkV_out_provir_fna::FnaP
     #postcheckV_nonintegrated_df::Union{Missing, DataFrame} = missing
     postcheckV_nonintegrated_df_p::TableP
     postcheckV_nonintegrated_fna::FnaP
+    postcheckV_nonintegrated_fna_trimmed_DTR::FnaP
     postcheckV_integrated_df_p::TableP
 end
 
@@ -94,6 +96,7 @@ Base.@kwdef mutable struct ProjCheckVIntegrated <: BioinfProj
     pd::String
     input_dfs_2_aggregate::Vector{TableP}
     #input_fnas_2_aggregate::Vector{FnaP}
+    output_aggregated_int_contigs_fna::FnaP
     output_aggregated_df::TableP
     output_aggregated_fna::FnaP
     checkV1::WrapCmd{RunCheckVCmd}
@@ -133,6 +136,7 @@ end
 Base.@kwdef mutable struct FinalThresholding <: BioinfProj
     pd::String
     inFna::FnaP
+    inFna_trimmed_DTR::Union{Missing, FnaP} = missing
     inTsv::TableP
     predictors::Vector{Symbol}
     predictors2::Union{Missing, Vector{Symbol}} = missing
@@ -143,16 +147,11 @@ Base.@kwdef mutable struct FinalThresholding <: BioinfProj
     th_completeness_CheckV_AAIMediumConf::Float64
     th_num_predictors_CheckV_HMM::Int64
     th_completeness_CheckV_HMM::Float64
+    th_num_predictors_CheckV_DTR_ITR_AAI::Union{Missing, Int64} = missing
+    th_num_predictors_CheckV_DTR_ITR_HMM::Union{Missing, Int64} = missing
 
-    #=thresholding old
-    th_num_predictors::Int64
-    th_num_predictors2::Union{Missing, Int64} = missing
-    th_checkV_completeness::Float64
-    th_checkV_completeness2::Union{Missing, Float64} = missing
-    th_checkV_contamination::Float64
-    th_checkV_contamination2::Union{Missing, Float64} = missing
-    =#
     outFnaP::FnaP
+    outFna_trimmed_DTR::Union{Missing, FnaP} = missing
     outTsv::TableP
 end
 
@@ -167,7 +166,7 @@ Base.@kwdef mutable struct ProjSViP <: BioinfSProj
     dosteps::Dict{String, WorkflowStatus}
     stop_after_initial_predictors::Bool = false
     contig_length::Union{Missing, Proj_sel_contig_length} = missing
-    shape_contigs::Union{DataFrame, Missing} = missing
+    #shape_contigs::Union{DataFrame, Missing} = missing
     genomad::Union{Missing, ProjGenomad} = missing
     DVF::Union{Missing, ProjDVF} = missing
     virSorter2::Union{Missing, ProjVirSorter2} = missing

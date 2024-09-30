@@ -188,7 +188,7 @@ function printProjSViP(outp::String, proj::ProjSViP)
    if ismissing(proj.checkV_NonIntegrated) == false
         checkV_nonInt_params = "subfolder: $(proj.checkV_NonIntegrated.pd)
     input table files from the initial predictors to agregate and use further: $(input_nonint_table_files)
-    table for virus contigs agregated from the initial predictors: $(proj.checkV_NonIntegrated.output_aggredated_df.p)
+    table for virus contigs agregated from the initial predictors: $(proj.checkV_NonIntegrated.output_aggregated_df.p)
     fasta file with virus contigs agregated from the initial predictors: $(proj.checkV_NonIntegrated.output_aggregated_fna.p)
     parameters for the CheckV command:
         input file: $(proj.checkV_NonIntegrated.checkV.cmd.input_f.p)
@@ -201,12 +201,14 @@ function printProjSViP(outp::String, proj::ProjSViP)
         sbatch --cpus-per-task: $(proj.checkV_NonIntegrated.checkV.sbatch_cpuspertask)
         sbatch --mem: $(proj.checkV_NonIntegrated.checkV.sbatch_mem)
     main CheckV outputs:
-        table file: $(proj.checkV_NonIntegrated.checkV_out_nonintegrated_df.p)
+        summary table file: $(proj.checkV_NonIntegrated.checkV_out_nonintegrated_summary_df.p)
+        complete table file: $(proj.checkV_NonIntegrated.checkV_out_nonintegrated_complete_df.p)
         fasta file for proviruses: $(proj.checkV_NonIntegrated.checkV_out_provir_fna.p)
     
     CheckV outputs post-processed by DoViP:
         table file for NON-INTEGRATED viruses: $(proj.checkV_NonIntegrated.postcheckV_nonintegrated_df_p.p)
-        fasta file for NON-INTEGRATED viruses: $(proj.checkV_NonIntegrated.postcheckV_nonintegrated_fna.p)"
+        fasta file for NON-INTEGRATED viruses: $(proj.checkV_NonIntegrated.postcheckV_nonintegrated_fna.p)
+        fasta file for NON-INTEGRATED viruses, with trimmed DTRs on the right contig side: $(proj.checkV_NonIntegrated.postcheckV_nonintegrated_fna_trimmed_DTR.p)"
    else
     checkV_nonInt_params = "    missing"
    end
@@ -239,6 +241,7 @@ function printProjSViP(outp::String, proj::ProjSViP)
     if ismissing(proj.final_thresholding_NonIntegrated) == false
         final_th_nonint_params = "subfolder: $(proj.final_thresholding_NonIntegrated.pd)
     input fasta file: $(proj.final_thresholding_NonIntegrated.inFna.p)
+    input fasta file with contigs, with trimmed DTRs on the right contig side: $(proj.final_thresholding_NonIntegrated.inFna_trimmed_DTR.p)
     input table file: $(proj.final_thresholding_NonIntegrated.inTsv.p)
     initial predictors: $(proj.final_thresholding_NonIntegrated.predictors)
     selection thresholds for viral contigs:
@@ -249,11 +252,13 @@ function printProjSViP(outp::String, proj::ProjSViP)
         - minimum completeness required when the method for determination of CheckV completeness is 'AAIMediumConf': $(proj.final_thresholding_NonIntegrated.th_completeness_CheckV_AAIMediumConf)
         - minimum number of predictors required if the method for determination of CheckV completeness is 'CheckV_HMM': $(proj.final_thresholding_NonIntegrated.th_num_predictors_CheckV_HMM)
         - minimum completeness required when the method for determination of CheckV completeness is 'CheckV_HMM': $(proj.final_thresholding_NonIntegrated.th_completeness_CheckV_HMM)
+        - minimum number of predictors required if the method for determination of CheckV completeness is 'CheckV_DTR_ITR_AAI': $(proj.final_thresholding_NonIntegrated.th_num_predictors_CheckV_DTR_ITR_AAI)
+        - minimum number of predictors required if the method for determination of CheckV completeness is 'CheckV_DTR_ITR_HMM': $(proj.final_thresholding_NonIntegrated.th_num_predictors_CheckV_DTR_ITR_HMM)
     
     final outputs:
         - table file with selected viral contigs, their initial predictors, CheckV statistics, taxonomy and life style predictions: $(proj.final_thresholding_NonIntegrated.outTsv.p)
         - fasta file with selected viral contigs: $(proj.final_thresholding_NonIntegrated.outFnaP.p)
-"
+        - fasta file with selected viral contigs, with trimmed DTRs on the right contig side: $(proj.final_thresholding_NonIntegrated.outFna_trimmed_DTR.p)"
     else
         final_th_nonint_params = "  missing"
     end
@@ -265,7 +270,8 @@ function printProjSViP(outp::String, proj::ProjSViP)
     input table files from the initial predictors to agregate and use further: $(input_int_table_files)
 
     table for virus contigs agregated from the initial predictors: $(proj.checkV_Integrated.output_aggregated_df.p)
-    fasta file with virus contigs agregated from the initial predictors: $(proj.checkV_Integrated.output_aggregated_fna.p)
+    fasta file with virus contigs containing potentially INTEGRATED virus region: $(proj.checkV_Integrated.output_aggregated_int_contigs_fna.p)
+    fasta file with INTEGRATED viral regions agregated from the initial predictors: $(proj.checkV_Integrated.output_aggregated_fna.p)
     parameters for first CheckV (CheckV1) command:
         input file: $(proj.checkV_Integrated.checkV1.cmd.input_f.p)
         output folder: $(proj.checkV_Integrated.checkV1.cmd.output_d)
@@ -318,10 +324,10 @@ function printProjSViP(outp::String, proj::ProjSViP)
         - minimum completeness required when the method for determination of CheckV completeness is 'AAIMediumConf': $(proj.final_thresholding_Integrated.th_completeness_CheckV_AAIMediumConf)
         - minimum number of predictors required if the method for determination of CheckV completeness is 'CheckV_HMM': $(proj.final_thresholding_Integrated.th_num_predictors_CheckV_HMM)
         - minimum completeness required when the method for determination of CheckV completeness is 'CheckV_HMM': $(proj.final_thresholding_Integrated.th_completeness_CheckV_HMM)
-    
     final outputs:
         - table file with selected viral contigs, their initial predictors, CheckV statistics, taxonomy and life style predictions: $(proj.final_thresholding_Integrated.outTsv.p)
-        - fasta file with selected viral contigs: $(proj.final_thresholding_Integrated.outFnaP.p)"
+        - fasta file with selected viral contigs: $(proj.final_thresholding_Integrated.outFnaP.p)
+        "
     else
         final_th_int_params = " missing"
     end
@@ -356,7 +362,6 @@ STOP AFTER INITIAL PREDICTORS STEP: $(proj.stop_after_initial_predictors)
 
 STATUS REPORT of individual steps
     select contig length:                signal is $(proj.dosteps["sel_contig_length"].signal), progress is $(proj.dosteps["sel_contig_length"].progress)
-    detect shape for contigs:            signal is $(proj.dosteps["shape_contigs"].signal), progress is $(proj.dosteps["shape_contigs"].progress)
     
     => Initial prediction steps
 
@@ -450,7 +455,7 @@ function order_NonIntDf!(df::DataFrame, sample_name::String, sample_set::String)
     
     column_names = names(df)
     column_order = [:sample_set, :sample_name, 
-                    :contig_name, :contig_shape] 
+                    :contig_name, :contig_shape, :contig_shape_remarks, :contig_end_repeat_type, :contig_end_repeat_size] 
 
     if "predictor_genomad" in column_names
         push!(column_order, :topology_genomad)
@@ -503,7 +508,7 @@ function order_NonIntDf!(df::DataFrame, sample_name::String, sample_set::String)
         append!(column_order, [:score_viralVerify, :shape_viralVerify])
     end
 
-    append!(column_order, [:completeness_checkV, :completeness_method_checkV, :contamination_checkV, :kmer_freq_checkV, :warnings_checkV, :gene_count_checkV, :viral_genes_checkV, :host_genes_checkV, :checkv_quality_checkV, :miuvig_quality_checkV])
+    append!(column_order, [:predictors_total, :completeness_checkV, :completeness_method_checkV, :contamination_checkV, :kmer_freq_checkV, :warnings_checkV, :gene_count_checkV, :viral_genes_checkV, :host_genes_checkV, :checkv_quality_checkV, :miuvig_quality_checkV])
                             
     if "predictor_genomad" in column_names
         push!(column_order, :taxonomy_genomad)
@@ -534,7 +539,7 @@ function order_IntDf!(df::DataFrame, sample_name::String, sample_set::String)
     end
 
     column_order = [:sample_set, :sample_name, 
-                    :contig_name, :contig_shape] 
+                    :contig_name, :contig_shape, :contig_shape_remarks, :contig_end_repeat_type, :contig_end_repeat_size] 
     
     if "predictor_genomad" in column_names
         append!(column_order, [:topology_genomad])
@@ -567,7 +572,7 @@ function order_IntDf!(df::DataFrame, sample_name::String, sample_set::String)
         push!(column_order, :predictor_viralVerify)
     end
 
-    append!(column_order, [:completeness_checkV, :completeness_method_checkV, :contamination_checkV, :kmer_freq_checkV, :warnings_checkV, :gene_count_checkV, :viral_genes_checkV, :host_genes_checkV, :checkv_quality_checkV, :miuvig_quality_checkV])
+    append!(column_order, [:predictors_total, :completeness_checkV, :completeness_method_checkV, :contamination_checkV, :kmer_freq_checkV, :warnings_checkV, :gene_count_checkV, :viral_genes_checkV, :host_genes_checkV, :checkv_quality_checkV, :miuvig_quality_checkV])
     
     if "predictor_genomad" in column_names
         push!(column_order, :taxonomy_genomad)

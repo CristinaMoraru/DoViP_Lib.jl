@@ -48,11 +48,11 @@ version = "0.2.0"
 
 [[deps.BioS_SeqFuns]]
 deps = ["BioS_Gen", "BioSequences", "CSV", "DataFrames", "FASTX", "FastaIO", "Suppressor"]
-git-tree-sha1 = "2841fcd75813717363cae65634500953ff4b3da0"
-repo-rev = "v0.2.0"
+git-tree-sha1 = "7dbff654222e142b2da571fa5a5e74873566ede5"
+repo-rev = "v0.2.2"
 repo-url = "https://github.com/CristinaMoraru/BioS_SeqFuns.jl"
 uuid = "f626d2e5-ec45-404c-84c6-8efe5c847b30"
-version = "0.2.0"
+version = "0.2.2"
 
 [[deps.BioSequences]]
 deps = ["BioSymbols", "PrecompileTools", "Random", "Twiddle"]
