@@ -24,11 +24,11 @@ version = "0.1.5"
 
 [[deps.BioS_ExtTools]]
 deps = ["BioS_Gen", "BioS_ProjsWFs", "BioS_SeqFuns", "CSV", "DataFrames", "Statistics"]
-git-tree-sha1 = "d1684b5cdd516329134df7a09817643f33e0d23d"
-repo-rev = "v0.4.0"
+git-tree-sha1 = "6f7d101911f2cfdcaf45f3fa3428ffdbb969022a"
+repo-rev = "v0.4.1"
 repo-url = "https://github.com/CristinaMoraru/BioS_ExtTools.jl"
 uuid = "2ab26461-0724-42ce-b75e-a46d47467e92"
-version = "0.4.0"
+version = "0.4.1"
 
 [[deps.BioS_Gen]]
 deps = ["DataFrames", "StringAlgorithms"]
@@ -152,9 +152,9 @@ weakdeps = ["BioSequences"]
 
 [[deps.FastaIO]]
 deps = ["GZip"]
-git-tree-sha1 = "acc357fd78405a0bc52413b0b97f4a47d5e648e3"
+git-tree-sha1 = "0133228b2353194fe0703d8cba182f832e11bb54"
 uuid = "a0c94c4b-ebed-5953-b5fc-82fe598ac79f"
-version = "1.0.2"
+version = "1.1.0"
 
 [[deps.FilePathsBase]]
 deps = ["Compat", "Dates", "Mmap", "Printf", "Test", "UUIDs"]
@@ -390,9 +390,9 @@ version = "7.2.1+1"
 
 [[deps.Suppressor]]
 deps = ["Logging"]
-git-tree-sha1 = "9143c41bd539a8885c79728b9dedb0ce47dc9819"
+git-tree-sha1 = "6dbb5b635c5437c68c28c2ac9e39b87138f37c0a"
 uuid = "fd094767-a336-5f1f-9728-57cf17d0bbfb"
-version = "0.2.7"
+version = "0.2.8"
 
 [[deps.TOML]]
 deps = ["Dates"]
