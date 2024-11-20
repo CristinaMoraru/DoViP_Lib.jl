@@ -8,10 +8,10 @@ project_hash = "b0e868225c7cae71b0c3e5c8c0d120c5668f8a1b"
 uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
 
 [[deps.Automa]]
-deps = ["PrecompileTools", "TranscodingStreams"]
-git-tree-sha1 = "014bc22d6c400a7703c0f5dc1fdc302440cf88be"
+deps = ["PrecompileTools", "SIMD", "TranscodingStreams"]
+git-tree-sha1 = "a8f503e8e1a5f583fbef15a8440c8c7e32185df2"
 uuid = "67c07d97-cdcb-5c2c-af73-a7f9c32a568b"
-version = "1.0.4"
+version = "1.1.0"
 
 [[deps.Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
@@ -24,11 +24,11 @@ version = "0.1.5"
 
 [[deps.BioS_ExtTools]]
 deps = ["BioS_Gen", "BioS_ProjsWFs", "BioS_SeqFuns", "CSV", "DataFrames", "Statistics"]
-git-tree-sha1 = "6f7d101911f2cfdcaf45f3fa3428ffdbb969022a"
-repo-rev = "v0.4.1"
+git-tree-sha1 = "12f9fe8b6dbb3ac03c7b46f5b78e6e33f68d26f5"
+repo-rev = "v0.4.2"
 repo-url = "https://github.com/CristinaMoraru/BioS_ExtTools.jl"
 uuid = "2ab26461-0724-42ce-b75e-a46d47467e92"
-version = "0.4.1"
+version = "0.4.2"
 
 [[deps.BioS_Gen]]
 deps = ["DataFrames", "StringAlgorithms"]
@@ -48,17 +48,17 @@ version = "0.2.0"
 
 [[deps.BioS_SeqFuns]]
 deps = ["BioS_Gen", "BioSequences", "CSV", "DataFrames", "FASTX", "FastaIO", "Suppressor"]
-git-tree-sha1 = "7dbff654222e142b2da571fa5a5e74873566ede5"
-repo-rev = "v0.2.2"
+git-tree-sha1 = "2d0253d16cb9f0dd39c43c7370bfb413d0372c7f"
+repo-rev = "v0.2.3"
 repo-url = "https://github.com/CristinaMoraru/BioS_SeqFuns.jl"
 uuid = "f626d2e5-ec45-404c-84c6-8efe5c847b30"
-version = "0.2.2"
+version = "0.2.3"
 
 [[deps.BioSequences]]
 deps = ["BioSymbols", "PrecompileTools", "Random", "Twiddle"]
-git-tree-sha1 = "6fdba8b4279460fef5674e9aa2dac7ef5be361d5"
+git-tree-sha1 = "9c9693d207634f745f9b965b4341b72b3a5e7d53"
 uuid = "7e6ae17a-c86d-528c-b3b9-7f778a29fe59"
-version = "3.1.6"
+version = "3.4.0"
 
 [[deps.BioSymbols]]
 deps = ["PrecompileTools"]
@@ -338,6 +338,12 @@ version = "3.5.17"
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 version = "0.7.0"
 
+[[deps.SIMD]]
+deps = ["PrecompileTools"]
+git-tree-sha1 = "52af86e35dd1b177d051b12681e1c581f53c281b"
+uuid = "fdea26ae-647d-5447-a871-4b548cad5224"
+version = "3.7.0"
+
 [[deps.SentinelArrays]]
 deps = ["Dates", "Random"]
 git-tree-sha1 = "ff11acffdb082493657550959d4feb4b6149e73a"
@@ -379,9 +385,9 @@ uuid = "892a3eda-7b42-436c-8928-eab12a02cf0e"
 version = "0.3.4"
 
 [[deps.StringViews]]
-git-tree-sha1 = "f7b06677eae2571c888fd686ba88047d8738b0e3"
+git-tree-sha1 = "ec4bf39f7d25db401bcab2f11d2929798c0578e5"
 uuid = "354b36f9-a18e-4713-926e-db85100087ba"
-version = "1.3.3"
+version = "1.3.4"
 
 [[deps.SuiteSparse_jll]]
 deps = ["Artifacts", "Libdl", "libblastrampoline_jll"]

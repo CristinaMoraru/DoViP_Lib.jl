@@ -253,6 +253,10 @@ function export_aggregated_int(inref::FnaP, proj::ProjCheckVIntegrated, parentD:
                     dfj[i, :splitprovir] = dfj[i, :seq_name]
                     dfj[i, :length] = dfj[i, :r_provir_end] + (dfj[i, :provirus_end] - dfj[i, :provirus_start] + 1)
                 end
+            elseif !ismissing(dfj[i, :shape_virSorter2]) && dfj[i, :shape_virSorter2] == "circular" && dfj[i, :contig_shape] == "linear"
+                if dfj[i, :provirus_end] > dfj[i, :contig_full_end]  
+                    dfj[i, :provirus_end] = dfj[i, :contig_full_end]  
+                end
             end
         end
     end
