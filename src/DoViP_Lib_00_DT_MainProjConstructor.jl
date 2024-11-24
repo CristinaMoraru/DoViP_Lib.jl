@@ -552,7 +552,7 @@ function ProjSViP_fun(args::Vector{String})
     inref = extract_inFiles(args, "inref", BioS_Gen.ALLOWED_EXT["FnaP"]) |> FnaP
     sampleName = getFileName(inref.p) 
     sample_set = extract_args(args, "sample_set")
-    println(typeof(sample_set))
+    #println(typeof(sample_set))
 
     # min_contig_length 
     min_contig_length = extract_args(args, "min_contig_length", Int64, 1000, 1000, 10000000)

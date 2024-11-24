@@ -208,7 +208,9 @@ function post_viralVerify(proj::ProjViralVerify, parentD::String)
         select!(vv_df, :contig_name, :length, :score_viralVerify, :shape_viralVerify)
         vv_df[!, :predictor_viralVerify] = fill("yes", nrow(vv_df))
 
-        CSV.write("$(parentD)/$(proj.postViralVerify_df.p)", vv_df, delim = '\t', header = true)
+        if !isempty(vv_df)
+            CSV.write("$(parentD)/$(proj.postViralVerify_df.p)", vv_df, delim = '\t', header = true)
+        end
     end
 
     return nothing
@@ -729,38 +731,44 @@ function merge_nonintegrated(inref::FnaP, proj::ProjCheckVNonintegrated, parentD
         end
     end
 
-    # save a fasta file with dereplicated viral contigs
-    out_fna_p = FnaP("$(parentD)/$(proj.output_aggregated_fna.p)")
-    contigNameSel(FnaP("$(parentD)/$(inref.p)"), out_fna_p, dfj[!, :contig_name])
+    if nrow(dfj) > 0
+        # save a fasta file with dereplicated viral contigs
+        out_fna_p = FnaP("$(parentD)/$(proj.output_aggregated_fna.p)")
+        contigNameSel(FnaP("$(parentD)/$(inref.p)"), out_fna_p, dfj[!, :contig_name])
+        
+        # determine contig shape and join it to the out DF
+        shape_ends_DF = detectContigShapeEnds(out_fna_p)
+        dfj = leftjoin!(dfj, shape_ends_DF, on = [:contig_name => :contig_name])
+        
+        # set start and end positions for viruses (for the moment, they match the contig start and end), give the virus a name (if circular, it will be different than the contig name)
+        dfj[!, :virus_type_DoViP] = fill("Non-integrated", nrow(dfj))
+        dfj[!, :virus_start] = fill(1, nrow(dfj))
+        dfj[!, :virus_end] = fill(1, nrow(dfj))
+        dfj[!, :virus_name] = fill("", nrow(dfj))
     
-    # determine contig shape and join it to the out DF
-    shape_ends_DF = detectContigShapeEnds(out_fna_p)
-    dfj = leftjoin!(dfj, shape_ends_DF, on = [:contig_name => :contig_name])
-    
-    # set start and end positions for viruses (for the moment, they match the contig start and end), give the virus a name (if circular, it will be different than the contig name)
-    dfj[!, :virus_type_DoViP] = fill("Non-integrated", nrow(dfj))
-    dfj[!, :virus_start] = fill(1, nrow(dfj))
-    dfj[!, :virus_end] = fill(1, nrow(dfj))
-    dfj[!, :virus_name] = fill("", nrow(dfj))
- 
-    for i in 1:nrow(dfj)
-        # I'm not cutting the viral contigs here, because they should enter CheckV fully. DTRs don't always signal the contig ends
-        dfj[i, :virus_end] = dfj[i, :contig_full_end]
-        dfj[i, :length] = dfj[i, :contig_full_end]
-        dfj[i, :virus_name] = dfj[i, :contig_name]
-        #=if dfj[i, :contig_shape] == "circular"
-            dfj[i, :virus_name] = dfj[i, :contig_name]*"___circ"
-        else
+        if "length" ∉ names(dfj)   # ∉  means NOT included in   # ∈ means included in
+            dfj[!, :length] = fill(0, nrow(dfj))
+        end
+
+        for i in 1:nrow(dfj)
+            # I'm not cutting the viral contigs here, because they should enter CheckV fully. DTRs don't always signal the contig ends
+            dfj[i, :virus_end] = dfj[i, :contig_full_end]
+            dfj[i, :length] = dfj[i, :contig_full_end]
             dfj[i, :virus_name] = dfj[i, :contig_name]
-        end =#
+            #=if dfj[i, :contig_shape] == "circular"
+                dfj[i, :virus_name] = dfj[i, :contig_name]*"___circ"
+            else
+                dfj[i, :virus_name] = dfj[i, :contig_name]
+            end =#
+        end
+        
+        rename!(dfj, :length => :virus_length)
+
+
+        # save outDF
+        CSV.write("$(parentD)/$(proj.output_aggregated_df.p)", dfj, delim = '\t', header = true)
     end
-    
-    rename!(dfj, :length => :virus_length)
 
-
-    # save outDF
-    CSV.write("$(parentD)/$(proj.output_aggregated_df.p)", dfj, delim = '\t', header = true)
-# :contig_shape, :contig_end_repeat_type, :contig_shape_remarks, :contig_end_repeat_size, :contig_trimmed_end, :contig_full_end 
     return dfj
 end
 
@@ -864,7 +872,10 @@ function merge_postCheckV_phaTYP_nonIntegrated!(phatypdf_p::TableP, indf_p::Tabl
     indf = CSV.read("$(parentD)/$(indf_p.p)", DataFrame; delim = '\t', header =1)
     phatyp_df = CSV.read("$(parentD)/$(phatypdf_p.p)", DataFrame, delim=',', header=1)
     phatyp_df = rename!(phatyp_df, :Accession => :virus_name, :Pred => :prediction_PhaTYP, :Score => :score_PhaTYP)
-    select!(phatyp_df, Not(:Length)) 
+    
+    if "Length" ∈ names(phatyp_df) 
+        select!(phatyp_df, Not(:Length)) 
+    end
 
     jdf = leftjoin!(indf, phatyp_df, on = [:virus_name])
     
