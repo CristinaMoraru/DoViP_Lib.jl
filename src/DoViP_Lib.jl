@@ -21,9 +21,9 @@ include("DoViP_Lib_funs1.jl")
 #=region to activate only for testing
 args = [
     "projtype=multipleworkflow",
-    "spd=/mnt/ASBRU/Projects/RESIST_phaseI_viruses/TEMP-TRANSFER/debug_dovipv09/three_meta",
-    "allrefs_params=/mnt/ASBRU/Projects/RESIST_phaseI_viruses/TEMP-TRANSFER/debug_dovipv09/CLM_Julia_EMC_DoViPv0.9_b1-1.tsv",
-    "continue=false",
+    "spd=/mnt/ASBRU/Projects/RESIST_phaseI_viruses/TEMP-TRANSFER/debug_dovipv09/one_meta",
+    "allrefs_params=/mnt/ASBRU/Projects/RESIST_phaseI_viruses/TEMP-TRANSFER/debug_dovipv09/CLM_Julia_EMC_DoViPv0.9_b1-2.tsv",
+    "continue=true",
 ] #
 
 if "--help" in args

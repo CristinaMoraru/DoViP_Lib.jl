@@ -162,18 +162,19 @@ function run_workflow_checkV_NonIntegrated!(proj::ProjCheckVNonintegrated, inref
 Aggregate NON-INTEGRATED VIRUSES
 ")
     merged_df = merge_nonintegrated(inref, proj, parentD) 
-    
+    out_df = DataFrame()
+
     if nrow(merged_df) > 0
         do_cmd(proj.checkV, "checkV", true, parentD; sbatch = sbatch)
         println("
 CheckV - postprocessing
 ")
-        postcheckV_nonintegrated!(proj, merged_df, parentD)
+        out_df = postcheckV_nonintegrated!(proj, merged_df, parentD)
     else
         println("There are no contigs left on the NON-INTEGRATED VIRUSES branch!")
     end
 
-    return nothing
+    return out_df
 end
 
 function run_workflow_checkV_Integrated(proj::ProjCheckVIntegrated, inref::FnaP, parentD::String; sbatch::Bool = false) 
@@ -283,14 +284,20 @@ function run_workflow(proj::ProjSViP)
 
             if length(proj.checkV_NonIntegrated.input_dfs_2_aggregate) > 0
                 #println(proj.checkV_NonIntegrated.input_dfs_2_aggregate)
-                do_wfstep("checkV_NonIntegrated", proj, run_workflow_checkV_NonIntegrated!, (proj.checkV_NonIntegrated, proj.contig_length.outref, proj.pd); logfun = printProjSViP, sbatch = proj.use_slurm)
-                do_wfstep("phaTYP_nonintegrated", proj, run_workflow_phaTYP_nonintegrated, (proj.phaTYP_nonintegrated, proj.checkV_NonIntegrated.postcheckV_nonintegrated_df_p, proj.pd); logfun = printProjSViP, sbatch = proj.use_slurm)
-
-                println("
+                checkV_nonInt_df = do_wfstep("checkV_NonIntegrated", proj, run_workflow_checkV_NonIntegrated!, (proj.checkV_NonIntegrated, proj.contig_length.outref, proj.pd); logfun = printProjSViP, sbatch = proj.use_slurm)
+                
+                if nrow(checkV_nonInt_df) > 0
+                    do_wfstep("phaTYP_nonintegrated", proj, run_workflow_phaTYP_nonintegrated, (proj.phaTYP_nonintegrated, proj.checkV_NonIntegrated.postcheckV_nonintegrated_df_p, proj.pd); logfun = printProjSViP, sbatch = proj.use_slurm)
+                
+                    println("
 Final Thresholding
 ")
-                do_wfstep("final_thresholding_NonIntegrated", proj, apply_thresholds!, (proj.final_thresholding_NonIntegrated, :virus_name, proj.pd, order_NonIntDf!, proj.sampleName, proj.sampleSet); logfun = printProjSViP)
-
+                    do_wfstep("final_thresholding_NonIntegrated", proj, apply_thresholds!, (proj.final_thresholding_NonIntegrated, :virus_name, proj.pd, order_NonIntDf!, proj.sampleName, proj.sampleSet); logfun = printProjSViP)
+                else
+                    println("
+There are no viruses left on the  NON-INTEGRATED VIRUSES Branch")
+                end
+                
                 println("
 -----------     Finished the NON-INTEGRATED VIRUSES branch.")
             else
