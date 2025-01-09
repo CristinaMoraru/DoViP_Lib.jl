@@ -700,12 +700,17 @@ function merge_integrated!(inref::FnaP, checkV::ProjCheckVIntegrated, dfj::DataF
 end
 
 function post_checkV2_integrated!(proj::ProjCheckVIntegrated, indf::DataFrame, parentD::String)
-    checkv2_df = CSV.read("$(parentD)/$(proj.checkV2_out_integrated_df.p)", DataFrame; delim='\t', header=1)
-    rename!(checkv2_df, :provirus => :provirus_checkV, :proviral_length => :proviral_length_checkV, :gene_count => :gene_count_checkV, :viral_genes => :viral_genes_checkV, :host_genes => :host_genes_checkV, 
+    checkv2_summary_df = CSV.read("$(parentD)/$(proj.checkV2_out_integrated_summary_df.p)", DataFrame; delim='\t', header=1)
+    rename!(checkv2_summary_df, :provirus => :provirus_checkV, :proviral_length => :proviral_length_checkV, :gene_count => :gene_count_checkV, :viral_genes => :viral_genes_checkV, :host_genes => :host_genes_checkV, 
                         :checkv_quality => :checkv_quality_checkV, :miuvig_quality => :miuvig_quality_checkV, :completeness => :completeness_checkV, :completeness_method => :completeness_method_checkV, 
                         :contamination => :contamination_checkV, :kmer_freq => :kmer_freq_checkV, :warnings => :warnings_checkV)
 
-    jdf = leftjoin!(indf, checkv2_df, on = [:provirus_name => :contig_id, :length => :contig_length])
+    checkV2_complete_df = CSV.read("$(parentD)/$(proj.checkV2_out_integrated_complete_df.p)", DataFrame; delim = '\t', header = 1)
+    select!(checkV2_complete_df, :contig_id, :contig_length, :prediction_type, :confidence_reason, :repeat_length, :repeat_count)
+    rename!(checkV2_complete_df, :prediction_type => :provirus_end_type_checkV, :confidence_reason => :completeness_confidence_reason_checkV, :repeat_length => :provirus_repeat_length_checkV, :repeat_count => :provirus_repeat_count_checkV)
+
+    jdf = leftjoin!(indf, checkv2_summary_df, on = [:provirus_name => :contig_id, :length => :contig_length])
+    jdf = leftjoin!(jdf, checkV2_complete_df, on = [:provirus_name => :contig_id, :length => :contig_length])
 
     CSV.write("$(parentD)/$(proj.postcheckV2_integrated_df_p.p)", jdf, delim = '\t', header = true)
 

@@ -108,7 +108,8 @@ Base.@kwdef mutable struct ProjCheckVIntegrated <: BioinfProj
     merged_integrated_DF::TableP
     merged_integrated_fna::FnaP
     checkV2::WrapCmd{RunCheckVCmd}
-    checkV2_out_integrated_df::TableP
+    checkV2_out_integrated_summary_df::TableP
+    checkV2_out_integrated_complete_df::TableP
     #postcheckV2_integrated_df::Union{Missing, DataFrame} = missing
     postcheckV2_integrated_df_p::TableP
 end

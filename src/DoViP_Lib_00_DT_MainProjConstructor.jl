@@ -370,7 +370,8 @@ function set_ProjCheckVIntegrated(pd::String, input_dfs_2_aggregate::Vector{Tabl
                                 exit_p = "$(checkVIntegratedLogs_D2)/checkVIntegrated.exit", env = checkV_env,
                                 sbatch_maxtime = checkv_sbatch_time, sbatch_cpuspertask = checkv_cpus_per_task, sbatch_mem = checkv_sbatch_mem)
 
-    checkV2_out_integrated_df = "$(checkVIntegrated_D2)/quality_summary.tsv" |> TableP
+    checkV2_out_integrated_summary_df = "$(checkVIntegrated_D2)/quality_summary.tsv" |> TableP
+    checkV2_out_integrated_complete_df = "$(checkVIntegrated_D2)/complete_genomes.tsv" |> TableP
 
     postcheckV2_integrated_df_p = "$(checkVIntegrated_D)/$(sp)_05_postcheckV2_integrated_df_p.tsv" |> TableP
 
@@ -389,7 +390,8 @@ function set_ProjCheckVIntegrated(pd::String, input_dfs_2_aggregate::Vector{Tabl
                     merged_integrated_DF,
                     merged_integrated_fna,
                     checkV2,
-                    checkV2_out_integrated_df, 
+                    checkV2_out_integrated_summary_df, 
+                    checkV2_out_integrated_complete_df,
                     postcheckV2_integrated_df_p)
 
     return proj

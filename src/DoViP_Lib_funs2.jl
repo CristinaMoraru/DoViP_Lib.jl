@@ -296,7 +296,8 @@ function printProjSViP(outp::String, proj::ProjSViP)
         num_threads: $(proj.checkV_Integrated.checkV2.cmd.num_threads)
         conda environment: $(proj.checkV_Integrated.checkV2.env)
     main CheckV2 outputs:
-        table file with CheckV summary: $(proj.checkV_Integrated.checkV2_out_integrated_df.p)
+        table file with CheckV summary: $(proj.checkV_Integrated.checkV2_out_integrated_summary_df.p)
+        table file with CheckV complete proviruses: $(proj.checkV_Integrated.checkV2_out_integrated_complete_df.p)
 
     slurm options for CheckV commands:
         sbatch --time: $(proj.checkV_Integrated.checkV1.sbatch_maxtime)
@@ -550,7 +551,9 @@ function order_IntDf!(df::DataFrame, sample_name::String, sample_set::String)
     end
 
     append!(column_order, [:contig_trimmed_end, :contig_full_end, 
-                            :provirus_name, :provirus_length, :provirus_start, :provirus_end, :r_provirus_start, :r_provirus_end, :proviral_fraction])
+                            :provirus_name, :provirus_length, :provirus_start, :provirus_end, :r_provirus_start, :r_provirus_end, 
+                            :provirus_end_type_checkV, :provirus_repeat_length_checkV, :provirus_repeat_count_checkV,
+                            :proviral_fraction])
 
     if "predictor_genomad" in column_names
         push!(column_order, :predictor_genomad)
