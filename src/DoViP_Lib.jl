@@ -18,13 +18,17 @@ include("DoViP_Lib_00_DT_MainProjConstructor.jl")
 include("DoViP_Lib_000_Run.jl")
 include("DoViP_Lib_funs1.jl")
 
-#=region to activate only for testing
+end # module DoViP_Lib
+
+
+#=
+#region to activate only for testing
 args = [
     "projtype=multipleworkflow",
     "spd=/mnt/ASBRU/Projects/RESIST_phaseI_viruses/TEMP-TRANSFER/debug_dovipv09/one_meta",
     "allrefs_params=/mnt/ASBRU/Projects/RESIST_phaseI_viruses/TEMP-TRANSFER/debug_dovipv09/CLM_Julia_EMC_DoViPv0.9_b1-2.tsv",
     "continue=true",
-] =#
+] #
 
 args = [
     "inref=/mnt/ASBRU/Projects/ProkIS_viruses/JGI_EMC/TEMP/in/3300029793_withISs.fna", 
@@ -144,7 +148,5 @@ elseif proj.projtype == "multipleworkflow"
 end
 
 println("DoVip is done!")
-#endregion #
-
-end # module DoViP_Lib
-
+#endregion 
+=#
