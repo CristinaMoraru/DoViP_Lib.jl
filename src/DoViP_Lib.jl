@@ -33,7 +33,7 @@ args = [
 #
 args = [
     "inref=/mnt/cephfs1/projects/DoViP_benchmarking/NCBI_dataset/inputs/ALL_45_genomes_v1.fasta", #/mnt/cephfs1/projects/DoViP_benchmarking/test_dataset/Bacteria-2_with_MORE_inserted_viruses.fasta",#/mnt/cephfs1/projects/DoViP_benchmarking/test_dataset/ALL_43_genomes_v1.fasta", #/mnt/cephfs1/projects/DoViP_benchmarking/test_dataset/all_NCBI_dataset_viruses.fasta",
-    "pd_prefix=/mnt/cephfs1/projects/DoViP_benchmarking/test_dataset",
+    "pd_prefix=/mnt/cephfs1/projects/DoViP_benchmarking/NCBI_dataset/outputs",
     "projtype=singleworkflow",
     "sample_set=DoViP_test_Isol_dataset",
     "use_slurm=false",
