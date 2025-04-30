@@ -42,21 +42,30 @@ function printProjSViP(outp::String, proj::ProjSViP)
     #endregion
 
     #region DVD
-    if ismissing(proj.DVF.runDVF) == false
+    if ismissing(proj.DVF) == false
+        if isnothing(proj.DVF.runDVF) == false
+            DVF_cmd = "        program path: $(proj.DVF.runDVF.cmd.program)
+            input fasta: $(proj.DVF.runDVF.cmd.input_f.p)
+            output folder: $(proj.DVF.runDVF.cmd.output_d)
+            minimum contig length: $(proj.DVF.runDVF.cmd.min_contig_len)
+            number of threads: $(proj.DVF.runDVF.cmd.num_threads)
+            conda environment: $(proj.DVF.runDVF.env)"
+
+            DVF_sbatch = "        sbatch --time: $(proj.DVF.runDVF.sbatch_maxtime)
+            sbatch --cpus-per-task: $(proj.DVF.runDVF.sbatch_cpuspertask)
+            sbatch --mem: $(proj.DVF.runDVF.sbatch_mem)"
+        else
+            DVF_cmd = "     unknown, due to the use of external results"
+            DVF_sbatch = "      unknown, due to the use of external results"
+        end
+
         DVF_params = "subfolder: $(proj.DVF.pd)
     input file for this step (to be pre-processed by DoViP before DVF): $(proj.DVF.input_f.p)
     maximum contig length allowed during pre-processing: $(proj.DVF.max_contig_len)
     DVF command parameters: 
-        program path: $(proj.DVF.runDVF.cmd.program)
-        input fasta: $(proj.DVF.runDVF.cmd.input_f.p)
-        output folder: $(proj.DVF.runDVF.cmd.output_d)
-        minimum contig length: $(proj.DVF.runDVF.cmd.min_contig_len)
-        number of threads: $(proj.DVF.runDVF.cmd.num_threads)
-        conda environment: $(proj.DVF.runDVF.env)
+    $(DVF_cmd)
     slurm options for DVF command:
-        sbatch --time: $(proj.DVF.runDVF.sbatch_maxtime)
-        sbatch --cpus-per-task: $(proj.DVF.runDVF.sbatch_cpuspertask)
-        sbatch --mem: $(proj.DVF.runDVF.sbatch_mem)
+    $(DVF_sbatch)
     main DFV output file: $(proj.DVF.output_dvf_f.p)
     post-DFV results thresholding:
         score threshold: $(proj.DVF.scoreTh)
@@ -206,9 +215,7 @@ function printProjSViP(outp::String, proj::ProjSViP)
         fasta file for proviruses: $(proj.checkV_NonIntegrated.checkV_out_provir_fna.p)
     
     CheckV outputs post-processed by DoViP:
-        table file for NON-INTEGRATED viruses: $(proj.checkV_NonIntegrated.postcheckV_nonintegrated_df_p.p)
-        fasta file for NON-INTEGRATED viruses: $(proj.checkV_NonIntegrated.postcheckV_nonintegrated_fna.p)
-        fasta file for NON-INTEGRATED viruses, with trimmed DTRs on the right contig side: $(proj.checkV_NonIntegrated.postcheckV_nonintegrated_fna_trimmed_DTR.p)"
+        table file for NON-INTEGRATED viruses: $(proj.checkV_NonIntegrated.postcheckV_nonintegrated_df_p.p)"
    else
     checkV_nonInt_params = "    missing"
    end
@@ -219,7 +226,8 @@ function printProjSViP(outp::String, proj::ProjSViP)
         phaTYP_params = "subfolder: $(proj.phaTYP_nonintegrated.pd)
     parameters for PhaTYP command:
         program path: $(proj.phaTYP_nonintegrated.phatyp.cmd.programD)
-        input file: $(proj.phaTYP_nonintegrated.phatyp.cmd.input_f.p)
+        input .fna file: $(proj.phaTYP_nonintegrated.phatyp.cmd.input_f.p)
+        input .tsv file: $(proj.phaTYP_nonintegrated.indf)
         database path: $(proj.phaTYP_nonintegrated.phatyp.cmd.database_d)
         parameters folder: $(proj.phaTYP_nonintegrated.phatyp.cmd.parameters_d)
         folder for temporary outputs: $(proj.phaTYP_nonintegrated.phatyp.cmd.outputtemp_d)
@@ -339,12 +347,85 @@ function printProjSViP(outp::String, proj::ProjSViP)
         detect_mixed_viruses_params = "subfolder: $(proj.detect_mixed_viruses.pd)
     input table file with integrated viruses: $(proj.detect_mixed_viruses.inDf_Int.p)
     input table file with non-integrated viruses: $(proj.detect_mixed_viruses.inDf_NonInt.p)
-    output table file with integrated viruses found also as non-integrated: $(proj.detect_mixed_viruses.outDf_Int.p)
-    output table file with non-integrated viruses found also as integrated: $(proj.detect_mixed_viruses.outDf_NonInt.p)"
+    input fasta file for integrated viruses: $(proj.detect_mixed_viruses.inFna_Int.p)
+    input fasta file for non-integrated viruses: $(proj.detect_mixed_viruses.inFna_NonInt.p)
+    output table file with integrated viruses found also as non-integrated: $(proj.detect_mixed_viruses.outDf_mixed_Int_p.p)
+    output table file with non-integrated viruses found also as integrated: $(proj.detect_mixed_viruses.outDf_mixed_nonInt_p.p)
+    output table file with non-integrated viruses resolved for the mixed viruses:  $(proj.detect_mixed_viruses.outDf_resolved_nonInt_p.p)
+    output table file with integrated viruses resolved for the mixed viruses:  $(proj.detect_mixed_viruses.outDf_resolved_Int_p.p)
+     "
     else
         detect_mixed_viruses_params = " missing"
     end
     #endregion
+
+    #region genomadTax NonInt
+    if ismissing(proj.genomadTax_NonInt) == false
+        if isnothing(proj.genomadTax_NonInt.genomadtax) == false
+            genomadTaxNonInt_cmd = "        task: $(proj.genomadTax_NonInt.genomadtax.cmd.task)
+            input file: $(proj.genomadTax_NonInt.genomadtax.cmd.input_f.p)
+            output folder: $(proj.genomadTax_NonInt.genomadtax.cmd.output_d)
+            database: $(proj.genomadTax_NonInt.genomadtax.cmd.database)
+            minimum score: $(proj.genomadTax_NonInt.genomadtax.cmd.min_score)
+            other options: $(proj.genomadTax_NonInt.genomadtax.cmd.other_options)
+            conda environment: $(proj.genomadTax_NonInt.genomadtax.env) "
+
+            genomadTaxNonInt_sbatch = "        sbatch --time: $(proj.genomadTax_NonInt.genomadtax.sbatch_maxtime)
+            sbatch --cpus-per-task: $(proj.genomadTax_NonInt.genomadtax.sbatch_cpuspertask)
+            sbatch --mem: $(proj.genomadTax_NonInt.genomadtax.sbatch_mem)"
+        else
+            genomadTaxNonInt_cmd = "     unknown"
+            genomadTaxNonInt_sbatch = "      unknown"
+        end
+
+        genomadTaxNonInt_params = "subfolder: $(proj.genomadTax_NonInt.pd)
+    genomad command parameters:
+    $(genomadTaxNonInt_cmd)
+    slurm options for genomad command:    
+    $(genomadTaxNonInt_sbatch)
+    genomad main output table: $(proj.genomadTax_NonInt.genomadtax_out_table_p.p)
+
+    genomad Tax outputs post-processed by DoViP:
+        table file for NON-INTEGRATED viruses: $(proj.genomadTax_NonInt.postgenomadtax_df.p)"
+
+    else
+        genomadTaxNonInt_params = "  missing"
+    end
+        #endregion
+
+    #region genomadTax Int
+    if ismissing(proj.genomadTax_Int) == false
+        if isnothing(proj.genomadTax_Int.genomadtax) == false
+            genomadTaxInt_cmd = "        task: $(proj.genomadTax_Int.genomadtax.cmd.task)
+            input file: $(proj.genomadTax_Int.genomadtax.cmd.input_f.p)
+            output folder: $(proj.genomadTax_Int.genomadtax.cmd.output_d)
+            database: $(proj.genomadTax_Int.genomadtax.cmd.database)
+            minimum score: $(proj.genomadTax_Int.genomadtax.cmd.min_score)
+            other options: $(proj.genomadTax_Int.genomadtax.cmd.other_options)
+            conda environment: $(proj.genomadTax_Int.genomadtax.env) "
+
+            genomadTaxInt_sbatch = "        sbatch --time: $(proj.genomadTax_Int.genomadtax.sbatch_maxtime)
+            sbatch --cpus-per-task: $(proj.genomadTax_Int.genomadtax.sbatch_cpuspertask)
+            sbatch --mem: $(proj.genomadTax_Int.genomadtax.sbatch_mem)"
+        else
+            genomadTaxInt_cmd = "     unknown"
+            genomadTaxInt_sbatch = "      unknown"
+        end
+
+        genomadTaxInt_params = "subfolder: $(proj.genomadTax_Int.pd)
+    genomad command parameters:
+    $(genomadTaxInt_cmd)
+    slurm options for genomad command:    
+    $(genomadTaxInt_sbatch)
+    genomad main output table: $(proj.genomadTax_Int.genomadtax_out_table_p.p)
+
+    genomad Tax outputs post-processed by DoViP:
+        table file for INTEGRATED viruses: $(proj.genomadTax_Int.postgenomadtax_df.p)"
+
+    else
+        genomadTaxInt_params = "  missing"
+    end
+        #endregion
 
     toprint = "
 ============================================================== DoViP parameters and status ========================================================
@@ -360,6 +441,7 @@ PROJECT FULL FOLDER: $(proj.pd)/$(proj.sampleName)
 PERFORM CALCULATIONS USING SLURM: $(proj.use_slurm)
 CONTINUE PREVIOUS PROJECT: $(proj.continue_project)
 STOP AFTER INITIAL PREDICTORS STEP: $(proj.stop_after_initial_predictors)  
+MERGE PROPHAGES WRAPPING AROUND CIRCULAR PROPHAGES: $(proj.checkV_Integrated.merge_circ_proph)
 
 STATUS REPORT of individual steps
     select contig length:                signal is $(proj.dosteps["sel_contig_length"].signal), progress is $(proj.dosteps["sel_contig_length"].progress)
@@ -376,18 +458,24 @@ STATUS REPORT of individual steps
 
     NON-INTEGRATED VIRUSES BRANCH
     checkV_NonIntegrated:                signal is $(proj.dosteps["checkV_NonIntegrated"].signal), progress is $(proj.dosteps["checkV_NonIntegrated"].progress)
+
+    INTEGRATED VIRUSES BRANCH
+    checkV_Integrated:                   signal is $(proj.dosteps["checkV_Integrated"].signal), progress is $(proj.dosteps["checkV_Integrated"].progress)
+
+    unMIXING VIRUSES
+    unimix viruses:                      signal is $(proj.dosteps["detect_mixed_viruses"].signal), progress is $(proj.dosteps["detect_mixed_viruses"].progress)
+
+    NON-INTEGRATED VIRUSES BRANCH
     PhaTYP_nonintegrated:                signal is $(proj.dosteps["phaTYP_nonintegrated"].signal), progress is $(proj.dosteps["phaTYP_nonintegrated"].progress)
+    geNomad Taxonomy nonintegrated:      signal is $(proj.dosteps["genomadTax_NonInt"].signal), progress is $(proj.dosteps["genomadTax_NonInt"].progress)
     Final_thresholding_NonIntegrated:    signal is $(proj.dosteps["final_thresholding_NonIntegrated"].signal), progress is $(proj.dosteps["final_thresholding_NonIntegrated"].progress)
         
     INTEGRATED VIRUSES BRANCH
-    checkV_Integrated:                   signal is $(proj.dosteps["checkV_Integrated"].signal), progress is $(proj.dosteps["checkV_Integrated"].progress)
+    geNomad Taxonomy nonintegrated::     signal is $(proj.dosteps["genomadTax_Int"].signal), progress is $(proj.dosteps["genomadTax_Int"].progress)
     Final_thresholding_Integrated:       signal is $(proj.dosteps["final_thresholding_Integrated"].signal), progress is $(proj.dosteps["final_thresholding_Integrated"].progress)
         
-    MIXED VIRUSES BRANCH
-    Detect_mixed_viruses:                signal is $(proj.dosteps["detect_mixed_viruses"].signal), progress is $(proj.dosteps["detect_mixed_viruses"].progress)
+ 
     
-   
-
 PARAMETERS FOR 'SELECT CONTIG LENGTH'
     subfolder: $(proj.contig_length.pd)
     minimum contig length: $(proj.contig_length.min_contig_length)
@@ -419,25 +507,36 @@ PARAMETERS FOR CheckV processing steps
     $(checkV_nonInt_params)
 
 
-PARAMETERS FOR PHATYP
-    $(phaTYP_params)
-
-PARAMETERS FOR FINAL SELECTION OF NON-INTEGRATED VIRUSES
-    $(final_th_nonint_params)
-
 => INTEGRATED VIRUSES BRANCH
 
 PARAMETERS FOR CheckV processing steps
     $(checkV_int_params)
-
-PARAMETERS FOR FINAL SELECTION OF INTEGRATED VIRUSES
-    $(final_th_int_params)
 
 
 => MIXED (UNRESOLVED IF INTEGRATED OR NON-INTEGRATED) VIRUSES BRANCH
 
 PARAMETERS FOR DETECTING MIXED VIRUSES
     $(detect_mixed_viruses_params)
+
+=> NON-INTEGRATED VIRUSES BRANCH
+
+PARAMETERS FOR PHATYP
+    $(phaTYP_params)
+    
+PARAMETERS FOR DETERMINING THE TAXONOMY OF ALL NON-INTEGRATED VIRAL SEQUENCES USING GENOMAD ANNOTATE  
+    $(genomadTaxNonInt_params)  
+
+PARAMETERS FOR FINAL SELECTION OF NON-INTEGRATED VIRUSES
+    $(final_th_nonint_params)
+    
+=> INTEGRATED VIRUSES BRANCH
+
+PARAMETERS FOR DETERMINING THE TAXONOMY OF ALL INTEGRATED VIRAL SEQUENCES USING GENOMAD ANNOTATE  
+    $(genomadTaxInt_params)
+
+PARAMETERS FOR FINAL SELECTION OF INTEGRATED VIRUSES
+    $(final_th_int_params)
+
 
 ============================================================== DoViP parameters and status ======================================================== 
 "
@@ -512,11 +611,15 @@ function order_NonIntDf!(df::DataFrame, sample_name::String, sample_set::String)
     append!(column_order, [:predictors_total, :completeness_checkV, :completeness_method_checkV, :contamination_checkV, :kmer_freq_checkV, :warnings_checkV, :gene_count_checkV, :viral_genes_checkV, :host_genes_checkV, :checkv_quality_checkV, :miuvig_quality_checkV])
                             
     if "predictor_genomad" in column_names
-        push!(column_order, :taxonomy_genomad)
+        push!(column_order, :genomadTax_taxid, :genomadTax_lineage)
     end
 
     if "predictor_virSorter2" in column_names
         push!(column_order, :max_score_group_virSorter2)
+    end
+
+    if "mixed" in column_names
+        push!(column_order, :mixed, :check_mixed, :orig_NonInt_predictors)
     end
     
     append!(column_order, [:virus_type_DoViP, :prediction_PhaTYP, :score_PhaTYP])
@@ -575,10 +678,10 @@ function order_IntDf!(df::DataFrame, sample_name::String, sample_set::String)
         push!(column_order, :predictor_viralVerify)
     end
 
-    append!(column_order, [:predictors_total, :completeness_checkV, :completeness_method_checkV, :contamination_checkV, :kmer_freq_checkV, :warnings_checkV, :gene_count_checkV, :viral_genes_checkV, :host_genes_checkV, :checkv_quality_checkV, :miuvig_quality_checkV])
+    append!(column_order, [:predictors_total, :predictor_average_coverage, :predictor_stddev_coverage, :completeness_checkV, :completeness_method_checkV, :contamination_checkV, :kmer_freq_checkV, :warnings_checkV, :gene_count_checkV, :viral_genes_checkV, :host_genes_checkV, :checkv_quality_checkV, :miuvig_quality_checkV])
     
     if "predictor_genomad" in column_names
-        push!(column_order, :taxonomy_genomad)
+        push!(column_order, :genomadTax_taxid, :genomadTax_lineage)
     end
 
     push!(column_order, :virus_type_DoViP)

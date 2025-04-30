@@ -22,14 +22,15 @@ end
 
 struct ProjDVF <: BioinfProj
     pd::String
+    ext_res::Bool
+    ext_res_D::Union{Nothing, String}
     input_f::FnaP
     max_contig_len::Int64
-    runDVF::WrapCmd{RunDVFCmd}
+    runDVF::Union{Nothing, WrapCmd{RunDVFCmd}}
     scoreTh::Float64
     pThreshold::Float64
     output_dvf_f::TableP
     modif_output_dvf_f::TableP
-    postdfv_nonintegrated_fna::FnaP
     postdvf_nonintegrated_df::TableP
     todelete::Vector{String}
 end
@@ -87,9 +88,15 @@ Base.@kwdef mutable struct ProjCheckVNonintegrated <: BioinfProj
     checkV_out_provir_fna::FnaP
     #postcheckV_nonintegrated_df::Union{Missing, DataFrame} = missing
     postcheckV_nonintegrated_df_p::TableP
-    postcheckV_nonintegrated_fna::FnaP
-    postcheckV_nonintegrated_fna_trimmed_DTR::FnaP
     postcheckV_integrated_df_p::TableP
+end
+
+mutable struct CovStruct
+    lDF::DataFrame
+    rDF::Union{Missing, DataFrame}
+    provir_length::Int64
+    final_averagecov::Float64
+    final_standad_deviation_cov::Float64
 end
 
 Base.@kwdef mutable struct ProjCheckVIntegrated <: BioinfProj
@@ -105,6 +112,7 @@ Base.@kwdef mutable struct ProjCheckVIntegrated <: BioinfProj
     postcheckv1_integrated_cor_withmergedprovirIDs_df::TableP
     #integrated_cor_fnaf::FnaP
     predictors::Vector{Symbol}
+    merge_circ_proph::Bool
     merged_integrated_DF::TableP
     merged_integrated_fna::FnaP
     checkV2::WrapCmd{RunCheckVCmd}
@@ -114,24 +122,36 @@ Base.@kwdef mutable struct ProjCheckVIntegrated <: BioinfProj
     postcheckV2_integrated_df_p::TableP
 end
 
-Base.@kwdef mutable struct ProjPhaTYP <: BioinfProj
-    pd::String
-    phatyp::WrapCmd{RunPhaTYPCmd}
-    phatyp_out_df::TableP
-    #mergedPostCheckV_PhaTYP::Union{Missing, DataFrame} = missing
-    mergedPostCheckV_PhaTYP_p::TableP
-end
-
-struct ProjDetectMixedViruses <: BioinfProj
+Base.@kwdef mutable struct ProjDetectMixedViruses <: BioinfProj
     pd::String
     inDf_Int::TableP
     inDf_NonInt::TableP
-    outDf_Int::TableP
-    #outFna_Int::FnaP
-    outDf_NonInt::TableP
-    #outFnaP_NonInt::FnaP
-    #outmixed_df::TableP
-    #outmixed_fna::FnaP
+    inFna_Int::FnaP
+    inFna_NonInt::FnaP
+    outDf_mixed_Int_p::TableP
+    outDf_mixed_nonInt_p::TableP
+    predictors::Vector{Symbol}
+    outDf_resolved_nonInt_p::TableP
+    outDf_resolved_Int_p::TableP
+    outFna_nonint_p::FnaP
+    outFna_nonint_DTR_trimmed_p::FnaP
+    outFna_Int_p::FnaP
+end
+
+Base.@kwdef mutable struct ProjPhaTYP <: BioinfProj
+    pd::String
+    phatyp::WrapCmd{RunPhaTYPCmd}
+    indf::TableP
+    phatyp_out_df::TableP
+    mergedPostCheckV_PhaTYP_p::TableP
+end
+
+struct ProjGenomadTax <: BioinfProj
+    pd::String
+    genomadtax::Union{Nothing, WrapCmd{RunGenomadCmd}}
+    genomadtax_out_table_p::TableP
+    previous_df::TableP
+    postgenomadtax_df::TableP
 end
 
 Base.@kwdef mutable struct FinalThresholding <: BioinfProj
@@ -140,16 +160,15 @@ Base.@kwdef mutable struct FinalThresholding <: BioinfProj
     inFna_trimmed_DTR::Union{Missing, FnaP} = missing
     inTsv::TableP
     predictors::Vector{Symbol}
-    predictors2::Union{Missing, Vector{Symbol}} = missing
-    th_num_predictors_CheckV_NA::Int64
-    th_num_predictors_CheckV_AAIHighConf::Int64
+    th_num_predictors_CheckV_NA::Float64
+    th_num_predictors_CheckV_AAIHighConf::Float64
     th_completeness_CheckV_AAIHighConf::Float64
-    th_num_predictors_CheckV_AAIMediumConf::Int64
+    th_num_predictors_CheckV_AAIMediumConf::Float64
     th_completeness_CheckV_AAIMediumConf::Float64
-    th_num_predictors_CheckV_HMM::Int64
+    th_num_predictors_CheckV_HMM::Float64
     th_completeness_CheckV_HMM::Float64
-    th_num_predictors_CheckV_DTR_ITR_AAI::Union{Missing, Int64} = missing
-    th_num_predictors_CheckV_DTR_ITR_HMM::Union{Missing, Int64} = missing
+    th_num_predictors_CheckV_DTR_ITR_AAI::Union{Missing, Float64} = missing
+    th_num_predictors_CheckV_DTR_ITR_HMM::Union{Missing, Float64} = missing
 
     outFnaP::FnaP
     outFna_trimmed_DTR::Union{Missing, FnaP} = missing
@@ -178,8 +197,9 @@ Base.@kwdef mutable struct ProjSViP <: BioinfSProj
     phaTYP_nonintegrated::Union{Missing, ProjPhaTYP} = missing
     #phaTYP_integrated::Union{Missing, ProjPhaTYP} = missing
     detect_mixed_viruses::Union{Missing, ProjDetectMixedViruses} = missing
+    genomadTax_NonInt::Union{Missing, ProjGenomadTax} = missing
+    genomadTax_Int::Union{Missing, ProjGenomadTax} = missing
     final_thresholding_NonIntegrated::Union{Missing, FinalThresholding} = missing
     final_thresholding_Integrated::Union{Missing, FinalThresholding} = missing
-    #final_thresholding_Mixed::Union{Missing, FinalThresholding} = missing
 end
 

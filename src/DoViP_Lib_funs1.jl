@@ -57,7 +57,11 @@ function post_genomad(proj::ProjGenomad, parentD::String)
 end
 
 function post_DVF(proj::ProjDVF, parentD::String)
-    df =  CSV.read("$(parentD)/$(proj.modif_output_dvf_f.p)", DataFrame; delim = '\t', header = 1)
+    if proj.ext_res == true
+        df =  CSV.read("$(proj.ext_res_D)/$(proj.modif_output_dvf_f.p)", DataFrame; delim = '\t', header = 1)
+    else
+        df =  CSV.read("$(parentD)/$(proj.modif_output_dvf_f.p)", DataFrame; delim = '\t', header = 1)
+    end
 
     df = rename!(df, :name => :contig_name, :len => :length, :score => :score_dvf, :pvalue => :pvalue_dvf)
     df[!, :predictor_dvf] = fill("yes", nrow(df))
@@ -244,10 +248,10 @@ function export_aggregated_int(inref::FnaP, proj::ProjCheckVIntegrated, parentD:
     dfj[!, :r_provir_start] = Vector{Union{Missing, Int64}}(missing, nrow(dfj))
     dfj[!, :r_provir_end] = Vector{Union{Missing, Int64}}(missing, nrow(dfj))
 
-    # mark prophages which wrap themselves around a circular contig (with DTR ends)
-    if "shape_virSorter2" in names(dfj) 
+    # mark prophages which wrap themselves around a circular contig - meaning that they are overlapping with the left DTR
+    #if "shape_virSorter2" in names(dfj) 
         for i in 1:nrow(dfj)
-            if !ismissing(dfj[i, :shape_virSorter2]) && dfj[i, :shape_virSorter2] == "circular" && dfj[i, :contig_shape] == "circular"
+            if dfj[i, :contig_shape] == "circular" #!ismissing(dfj[i, :shape_virSorter2]) && dfj[i, :shape_virSorter2] == "circular" && dfj[i, :contig_shape] == "circular"
                 if dfj[i, :provirus_end] > dfj[i, :contig_trimmed_end]  
                     dfj[i, :r_provir_start] = 1
                     dfj[i, :r_provir_end] = dfj[i, :provirus_end] - dfj[i, :contig_trimmed_end] 
@@ -255,34 +259,34 @@ function export_aggregated_int(inref::FnaP, proj::ProjCheckVIntegrated, parentD:
                     dfj[i, :splitprovir] = dfj[i, :seq_name]
                     dfj[i, :length] = dfj[i, :r_provir_end] + (dfj[i, :provirus_end] - dfj[i, :provirus_start] + 1)
                 end
-            elseif !ismissing(dfj[i, :shape_virSorter2]) && dfj[i, :shape_virSorter2] == "circular" && dfj[i, :contig_shape] == "linear"
+            elseif "shape_virSorter2" in names(dfj) && !ismissing(dfj[i, :shape_virSorter2]) && dfj[i, :shape_virSorter2] == "circular" && dfj[i, :contig_shape] == "linear" #
                 if dfj[i, :provirus_end] > dfj[i, :contig_full_end]  
                     dfj[i, :provirus_end] = dfj[i, :contig_full_end]  
                 end
             end
         end
-    end
-
-    # find corresponding contig names for the split proviruses (as detected by VirSorter2) and save them as a Set
+    #end
+    
+    #= find corresponding contig names for the split proviruses (as detected by VirSorter2) and save them as a Set
     splitprovir_set = collect(skipmissing(unique(dfj[!, :splitprovir])))
     
     for i in eachindex(splitprovir_set)
         splitprovir_set[i] = replace(splitprovir_set[i], Regex("\\|\\|\\d+_partial") => "")
     end
-    splitprovir_set = Set(unique(splitprovir_set))
+    splitprovir_set = Set(unique(splitprovir_set)) =#
 
     for i in 1:nrow(dfj)
         dfj[i, :provirID1] = "provirID1num$(i)"
 
         #= trim prophages predicted by the other predictors found on circular contigs that extend in the right direct terminal repeat
-        end, contigs for which virSorter2 found proviruses wrapping around the ends of contigs =#
+        end, contigs for which virSorter2 found proviruses wrapping around the ends of contigs #
         # check if the value in column seq_name is in the splitprovir_vec 
         if dfj[i, :contig_name] in splitprovir_set
             if dfj[i, :provirus_end] > dfj[i, :contig_trimmed_end]
                 dfj[i, :provirus_end] = dfj[i, :contig_trimmed_end]
                 dfj[i, :length] = dfj[i, :provirus_end] - dfj[i, :provirus_start] + 1
             end
-        end
+        end =#
 
     end
     #endregion 
@@ -391,18 +395,19 @@ function post_checkv1_integrated!(proj::ProjCheckVIntegrated, agreg_df::DataFram
 end
 
 function find_consensus(vc::AbstractVector)
-    cons = unique(vc) |> skipmissing |> collect
-    
+    cons = unique(vc) |> skipmissing |> collect |> sort
+        
     if length(cons) == 1
         return cons[1]
     elseif length(cons) > 1
-        return "conflicting"
+        cons = join(cons, ", ")
+        return cons
     elseif length(cons) == 0
         return missing
     end
 end
 
-function group_proviruses!(df::DataFrame, predictors::Vector{Symbol})
+function group_proviruses!(df::DataFrame, predictors::Vector{Symbol}, merge_circ_proph::Bool)
     # df = deepcopy(dfj)
 
     df[!, :provir] = fill("", nrow(df))
@@ -466,11 +471,10 @@ function group_proviruses!(df::DataFrame, predictors::Vector{Symbol})
 
     #create new columns to transfer the info from the df with unmerged pro-viruses to the df with merged proviruses
     newdf[!, :taxonomy] = Vector{Union{Missing, String}}(missing, nrow(newdf))
-    newdf[!, :predictor_genomad] = Vector{Union{Missing, String}}(missing, nrow(newdf))
-    newdf[!, :predictor_virSorter2] = Vector{Union{Missing, String}}(missing, nrow(newdf))
-    newdf[!, :predictor_vibrant] = Vector{Union{Missing, String}}(missing, nrow(newdf))
-    newdf[!, :predictor_dvf] = Vector{Union{Missing, String}}(missing, nrow(newdf))
-    newdf[!, :predictor_viralVerify] = Vector{Union{Missing, String}}(missing, nrow(newdf))
+
+    for pred in predictors
+        newdf[!, pred] = Vector{Union{Missing, String}}(missing, nrow(newdf))
+    end
     newdf[!, :splitprovir] = Vector{Union{Missing, String}}(missing, nrow(newdf))
     newdf[!, :r_provirus_start] = Vector{Union{Missing, Int64}}(missing, nrow(newdf))
     newdf[!, :r_provirus_end] = Vector{Union{Missing, Int64}}(missing, nrow(newdf))
@@ -527,138 +531,134 @@ function group_proviruses!(df::DataFrame, predictors::Vector{Symbol})
     end
     #endregion
 
+
     #region merge prophages spanning (or very close to) the ends of a circular contig
-    anewdf = DataFrame()
-    #arow = 0
-    gnewdf = groupby(newdf, :contig_name)
-    for gn in gnewdf     
-        shape = find_consensus(gn[!, :contig_shape]) 
-        if :predictor_virSorter2 in predictors
-            shape_vs = find_consensus(gn[!, :shape_virSorter2])
-        else
-            shape_vs = missing
-        end
+    if merge_circ_proph == true
+        anewdf = DataFrame()
+        #arow = 0
+        gnewdf = groupby(newdf, :contig_name)
+        for gn in gnewdf     
+            shape = find_consensus(gn[!, :contig_shape]) 
 
-        if "splitprovir" in names(gn)
-            split_vs = find_consensus(gn[!, :splitprovir])
-        else
-            split_vs = missing
-        end
+            # I will merge only pro-viruses found at the end of circular contigs and overlapp 
+            if (!ismissing(shape) && shape == "circular") #&& !ismissing(split_vs)
+                sort!(gn, :provirus_start)
+                lastrow = nrow(gn)
+                if gn[lastrow, :splitprovir] == gn[1, :splitprovir]
+                    if (gn[lastrow, :contig_trimmed_end] - gn[lastrow, :provirus_end]) <= 1 
+                        spaceL = gn[lastrow, :contig_trimmed_end] - gn[lastrow, :provirus_end]                       
+                        if gn[1, :provirus_start] <= 1
+                            spaceR = gn[1, :provirus_start]
+                            if (spaceR + spaceL) <= 2
 
-        # I will merge only pro-viruses found on circular contigs (with DTRs) and found by VirSorter2 to wrapp around the contig ends
-        if (!ismissing(shape) && shape == "circular") && (:predictor_virSorter2 in predictors && !ismissing(shape_vs) && shape_vs == "circular" && !ismissing(split_vs))
-            sort!(gn, :provirus_start)
-            lastrow = nrow(gn)
-            if (gn[lastrow, :contig_trimmed_end] - gn[lastrow, :provirus_end]) <= 1000 
-                spaceL = gn[lastrow, :contig_trimmed_end] - gn[lastrow, :provirus_end]                       
-                if gn[1, :provirus_start] <= 1000
-                    spaceR = gn[1, :provirus_start]
-                    if (spaceR + spaceL) <= 1000
+                                contig_end_repeat_type = find_consensus(gn[!, :contig_end_repeat_type])
+                                contig_shape_remarks = find_consensus(gn[!, :contig_shape_remarks])
+                                contig_end_repeat_size = find_consensus(gn[!, :contig_end_repeat_size])
 
-                        contig_end_repeat_type = find_consensus(gn[!, :contig_end_repeat_type])
-                        contig_shape_remarks = find_consensus(gn[!, :contig_shape_remarks])
-                        contig_end_repeat_size = find_consensus(gn[!, :contig_end_repeat_size])
+                                colnames = names(gn)
+                                if "r_provirus_start" in colnames
+                                    r_provirus_start = 1
+                                else
+                                    r_provirus_start = missing
+                                end
 
-                        colnames = names(gn)
-                        if "r_provirus_start" in colnames
-                            #anewdf[arow, :r_provirus_start] = 1
-                            r_provirus_start = 1
-                        else
-                            r_provirus_start = missing
+                                if "r_provirus_end" in colnames
+                                    r_provirus_end = gn[1, :provirus_end]
+                                else
+                                    r_provirus_end = missing
+                                end
+            
+                                if :predictor_genomad in predictors
+                                    taxonomy = find_consensus([gn[lastrow, :taxonomy], gn[1, :taxonomy]])
+                                    predictor_genomad = find_consensus([gn[lastrow, :predictor_genomad], gn[1, :predictor_genomad]])
+                                    shape_g = find_consensus(gn[!, :topology_genomad])
+                                else
+                                    taxonomy = missing
+                                    predictor_genomad = missing
+                                    shape_g = missing
+                                end
+
+                    
+                                if "splitprovir" in names(gn)
+                                    splitprovir = find_consensus([gn[lastrow, :splitprovir], gn[1, :splitprovir]])
+                                else
+                                    splitprovir = missing
+                                end
+
+                                if :predictor_virSorter2 in predictors
+                                    predictor_virSorter2 = find_consensus([gn[lastrow, :predictor_virSorter2], gn[1, :predictor_virSorter2]])
+                                    shape_vs = find_consensus([gn[lastrow, :shape_virSorter2], gn[1, :shape_virSorter2]])
+                                else
+                                    predictor_virSorter2 = missing
+                                    shape_vs = missing
+                                end
+                                    
+                                if :predictor_vibrant in predictors
+                                    predictor_vibrant = find_consensus([gn[lastrow, :predictor_vibrant], gn[1, :predictor_vibrant]])
+                                else
+                                    predictor_vibrant = missing
+                                end
+
+                                if :predictor_dvf in predictors
+                                    predictor_dvf = find_consensus([gn[lastrow, :predictor_dvf], gn[1, :predictor_dvf]])
+                                else
+                                    predictor_dvf = missing
+                                end
+                                        
+                                if :predictor_viralVerify in predictors
+                                    predictor_viralVerify = find_consensus([gn[lastrow, :predictor_viralVerify], gn[1, :predictor_viralVerify]])
+                                    shape_vv = find_consensus(gn[!, :shape_viralVerify])
+                                else
+                                    predictor_viralVerify = missing
+                                    shape_vv = missing
+                                end
+                    
+                                push!(anewdf, 
+                                        (provirus_name = "$(gn[lastrow, :provirus_name])_____$(gn[1, :provirus_name])",
+                                        contig_name = gn[1, :contig_name],
+                                        provirus_start = gn[lastrow, :provirus_start],
+                                        provirus_end = gn[lastrow, :contig_trimmed_end],
+                                        length = (gn[1, :provirus_end] + (gn[lastrow, :contig_trimmed_end] - gn[lastrow, :provirus_start] +  1)),
+                                        r_provirus_start = r_provirus_start,
+                                        r_provirus_end = r_provirus_end,
+                                        taxonomy = taxonomy,
+                                        predictor_genomad = predictor_genomad,
+                                        predictor_virSorter2 = predictor_virSorter2,
+                                        predictor_vibrant = predictor_vibrant,
+                                        predictor_dvf = predictor_dvf,
+                                        predictor_viralVerify = predictor_viralVerify,
+                                        shape_virSorter2 = shape_vs,
+                                        topology_genomad = shape_g,
+                                        shape_viralVerify = shape_vv,
+                                        contig_shape = shape,
+                                        contig_end_repeat_type = contig_end_repeat_type, 
+                                        contig_shape_remarks = contig_shape_remarks, 
+                                        contig_end_repeat_size = contig_end_repeat_size,
+                                        contig_trimmed_end = find_consensus([gn[lastrow, :contig_trimmed_end], gn[1, :contig_trimmed_end]]),
+                                        contig_full_end = find_consensus([gn[lastrow, :contig_full_end], gn[1, :contig_full_end]]),
+                                        splitprovir = splitprovir
+                                        ); cols=:union)
+
+
+                                gn[1, :todel] = true
+                                gn[lastrow, :todel] = true
+                            end
                         end
-
-                        if "r_provirus_end" in colnames
-                            #anewdf[arow, :r_provirus_end] = gn[1, :provirus_end]
-                            r_provirus_end = gn[1, :provirus_end]
-                        else
-                            r_provirus_end = missing
-                        end
-      
-                        if :predictor_genomad in predictors
-                            #anewdf[arow, :taxonomy] = find_consensus([gn[lastrow, :taxonomy], gn[1, :taxonomy]])
-                            taxonomy = find_consensus([gn[lastrow, :taxonomy], gn[1, :taxonomy]])
-                            #anewdf[arow, :predictor_genomad] = find_consensus([gn[lastrow, :predictor_genomad], gn[1, :predictor_genomad]])
-                            predictor_genomad = find_consensus([gn[lastrow, :predictor_genomad], gn[1, :predictor_genomad]])
-                            shape_g = find_consensus(gn[!, :topology_genomad])
-                        else
-                            taxonomy = missing
-                            predictor_genomad = missing
-                            shape_g = missing
-                        end
-
-                        if :predictor_virSorter2 in predictors
-                            #anewdf[arow, :predictor_virSorter2] = find_consensus([gn[lastrow, :predictor_virSorter2], gn[1, :predictor_virSorter2]])
-                            predictor_virSorter2 = find_consensus([gn[lastrow, :predictor_virSorter2], gn[1, :predictor_virSorter2]])
-                            #anewdf[arow, :shape_virSorter2] = shape_vs
-                        else
-                            predictor_virSorter2 = missing
-                        end
-                             
-                        if :predictor_vibrant in predictors
-                            #anewdf[arow, :predictor_vibrant] = find_consensus([gn[lastrow, :predictor_vibrant], gn[1, :predictor_vibrant]])
-                            predictor_vibrant = find_consensus([gn[lastrow, :predictor_vibrant], gn[1, :predictor_vibrant]])
-                        else
-                            predictor_vibrant = missing
-                        end
-
-                        if :predictor_dvf in predictors
-                            predictor_dvf = find_consensus([gn[lastrow, :predictor_dvf], gn[1, :predictor_dvf]])
-                        else
-                            predictor_dvf = missing
-                        end
-                                  
-                        if :predictor_viralVerify in predictors
-                            predictor_viralVerify = find_consensus([gn[lastrow, :predictor_viralVerify], gn[1, :predictor_viralVerify]])
-                            shape_vv = find_consensus(gn[!, :shape_viralVerify])
-                        else
-                            predictor_viralVerify = missing
-                            shape_vv = missing
-                        end
-               
-                        push!(anewdf, 
-                                (provirus_name = "$(gn[lastrow, :provirus_name])_____$(gn[1, :provirus_name])",
-                                contig_name = gn[1, :contig_name],
-                                provirus_start = gn[lastrow, :provirus_start],
-                                provirus_end = gn[lastrow, :contig_trimmed_end],
-                                length = (gn[1, :provirus_end] + (gn[lastrow, :contig_trimmed_end] - gn[lastrow, :provirus_start] +  1)),
-                                r_provirus_start = r_provirus_start,
-                                r_provirus_end = r_provirus_end,
-                                taxonomy = taxonomy,
-                                predictor_genomad = predictor_genomad,
-                                predictor_virSorter2 = predictor_virSorter2,
-                                predictor_vibrant = predictor_vibrant,
-                                predictor_dvf = predictor_dvf,
-                                predictor_viralVerify = predictor_viralVerify,
-                                shape_virSorter2 = shape_vs,
-                                topology_genomad = shape_g,
-                                shape_viralVerify = shape_vv,
-                                contig_shape = shape,
-                                contig_end_repeat_type = contig_end_repeat_type, 
-                                contig_shape_remarks = contig_shape_remarks, 
-                                contig_end_repeat_size = contig_end_repeat_size,
-                                contig_trimmed_end = find_consensus([gn[lastrow, :contig_trimmed_end], gn[1, :contig_trimmed_end]]),
-                                contig_full_end = find_consensus([gn[lastrow, :contig_full_end], gn[1, :contig_full_end]]),
-                                ); cols=:union)
-
-
-                        gn[1, :todel] = true
-                        gn[lastrow, :todel] = true
                     end
                 end
             end
         end
-    end
-    #arow = nothing
+        #arow = nothing
 
-    newdf = vcat(newdf, anewdf; cols = :union)
+        newdf = vcat(newdf, anewdf; cols = :union)
 
-    # remove rows marked as todel (merged contigs spanning the cicular contig ends)
-    for i in nrow(newdf):-1:1
-        if ismissing(newdf[i, :todel]) == false && newdf[i, :todel] == true
-            deleteat!(newdf, i)
+        # remove rows marked as todel (merged contigs spanning the cicular contig ends)
+        for i in nrow(newdf):-1:1
+            if ismissing(newdf[i, :todel]) == false && newdf[i, :todel] == true
+                deleteat!(newdf, i)
+            end
         end
-    end
-
+    end 
     select!(newdf, Not(:todel))
 
     #endregion
@@ -666,28 +666,208 @@ function group_proviruses!(df::DataFrame, predictors::Vector{Symbol})
     return newdf
 end
 
+#=
+consensus_df_p = "/mnt/cephfs1/projects/DoViP_benchmarking/test_dataset/ALL_43_genomes_v1_mergeproph-true/03_I-01_checkV_Integrated/03_I-01_03_merged_integrated.tsv"
+consensus_df = CSV.read(consensus_df_p, DataFrame; delim = '\t', header = 1)
+
+dfj_p = "/mnt/cephfs1/projects/DoViP_benchmarking/test_dataset/ALL_43_genomes_v1_mergeproph-true/03_I-01_checkV_Integrated/03_I-01_02_postcheckV1_integrated_withmergedprovirIDs_cordf.tsv"
+dfj = CSV.read(dfj_p, DataFrame; delim = '\t', header = 1) =#
+
+function bring_circ_provirus_names!(dfj::DataFrame, consensus_df::DataFrame)
+    lprovir_v = Vector{String}()
+    rprovir_v = Vector{String}()
+
+    for i in 1:nrow(consensus_df)
+        if occursin("_____", consensus_df[i, :provirus_name])
+            sp = split(consensus_df[i, :provirus_name], "_____")
+            push!(lprovir_v, sp[1])
+            push!(rprovir_v, sp[2])
+        end
+    end
+
+    dfj[!, :provirus_name] = fill("", nrow(dfj))
+    for i in 1:nrow(dfj)
+        for j in eachindex(lprovir_v)
+            if dfj[i, :provir] == lprovir_v[j] || dfj[i, :provir] == rprovir_v[j]
+                dfj[i, :provirus_name] = "$(lprovir_v[j])_____$(rprovir_v[j])"
+            end
+        end
+    
+        if dfj[i, :provirus_name] == ""
+            dfj[i, :provirus_name] = dfj[i, :provir] 
+        end
+    end
+
+    return dfj
+end
+
+# dfj =  bring_circ_provirus_names!(dfj, consensus_df)
+
+function initialize_predcov_dict(consensus_df)
+
+    cov_dict = Dict{String, CovStruct}()
+
+    for i in 1:nrow(consensus_df)
+        key = consensus_df[i, :provirus_name]
+
+        # left end
+        lDF_length = consensus_df[i, :provirus_end] - consensus_df[i, :provirus_start] + 1
+        lDF = DataFrame(coordinates = fill(0, lDF_length), 
+                        pred_cov = fill(0, lDF_length))
+
+        lcoords_v = consensus_df[i, :provirus_start]:consensus_df[i, :provirus_end]             
+        for j in 1:nrow(lDF)
+            lDF[j, :coordinates] = lcoords_v[j]
+        end
+
+        # right end
+        if !ismissing(consensus_df[i, :r_provirus_start]) && !ismissing(consensus_df[i, :r_provirus_end])
+            rDF_length = consensus_df[i, :r_provirus_end] - consensus_df[i, :r_provirus_start] + 1
+            rDF = DataFrame(coordinates = fill(0, rDF_length), 
+                            pred_cov = fill(0, rDF_length))
+            rcoords_v = consensus_df[i, :r_provirus_start]:consensus_df[i, :r_provirus_end]             
+            for j in 1:nrow(rDF)
+                rDF[j, :coordinates] = rcoords_v[j]
+            end
+        else
+            rDF = missing
+        end
+
+        cov_dict[key] = CovStruct(lDF, rDF, consensus_df[i, :length], 0.0, 0.0)
+    end
+
+    return cov_dict
+end
+
+function calculate_predcov!(dfj::DataFrame, consensus_df::DataFrame, predictors::Vector{Symbol})
+    # initialize initialize_predcov_dict
+    predcov_dict = initialize_predcov_dict(consensus_df)
+
+    # use dfj to calculate the "initial predictor" coverage for each merged pro-virus
+    gdfj = groupby(dfj, :provirus_name)
+
+    for i in 1:length(gdfj)
+
+        key = gdfj[i][1, :provirus_name]
+
+        if nrow(gdfj[i]) == 1
+            predcov_dict[key].final_averagecov = 1.0
+            predcov_dict[key].final_standad_deviation_cov = 0
+        else # load predictor coverage at each position of the prophage
+
+            if !occursin("_____", key)           # for linear prophages
+                shift =  predcov_dict[key].lDF[1, :coordinates] 
+                for a in 1:nrow(gdfj[i])
+
+                    # find if it has more than one predictos (e.g. when beeign transfered from teh non-integrated branch)
+                    pc = 0
+                    for p in predictors 
+                        if string(p) in names(gdfj[i]) && !ismissing(gdfj[i][a, p]) && gdfj[i][a, p] == "yes"
+                            pc += 1
+                        end
+                    end
+
+                    # left arm
+                    for j in gdfj[i][a, :provir_start_cor]:gdfj[i][a, :provir_end_cor]
+                        row = j - shift + 1
+                        predcov_dict[key].lDF[row, :pred_cov] += pc                                           # add the number of predictors for one proviral fragment
+                    end
+                end 
+            else                                # for wrapped prophages
+                for a in 1:nrow(gdfj[i])
+
+                    pc = 0
+                    for p in predictors 
+                        if string(p) in names(gdfj[i]) && !ismissing(gdfj[i][a, p]) && gdfj[i][a, p] == "yes"
+                            pc += 1
+                        end
+                    end
+
+                    # right arm
+                    if ismissing(gdfj[i][a, :r_provir_start_cor]) && ismissing(gdfj[i][a, :r_provir_end_cor])
+                        shift =  predcov_dict[key].rDF[1, :coordinates] 
+                        for j in gdfj[i][a, :provir_start_cor]:gdfj[i][a, :provir_end_cor]
+                            row = j - shift + 1
+                            predcov_dict[key].rDF[row, :pred_cov] += pc 
+                        end
+                    else
+                        # left arm
+                        shift =  predcov_dict[key].lDF[1, :coordinates] 
+                        for j in gdfj[i][a, :provir_start_cor]:gdfj[i][a, :provir_end_cor]
+                            row = j - shift + 1
+                            predcov_dict[key].lDF[row, :pred_cov] += pc
+                        end
+                    end
+                end
+            end
+
+            # calculate coverage
+
+            if ismissing(predcov_dict[key].rDF)
+                all_covs = predcov_dict[key].lDF[!, :pred_cov]
+            else
+                all_covs = vcat(predcov_dict[key].lDF[!, :pred_cov], predcov_dict[key].rDF[!, :pred_cov])
+            end
+
+            favcov = round(mean(all_covs), digits = 2)
+            fstd_cov = round(std(all_covs), digits = 2)
+
+            predcov_dict[key].final_averagecov = favcov
+            predcov_dict[key].final_standad_deviation_cov = fstd_cov
+        end
+    end
+
+    consensus_df[!, :predictor_average_coverage] = fill(0.0, nrow(consensus_df))
+    consensus_df[!, :predictor_stddev_coverage] = fill(0.0, nrow(consensus_df))
+
+    for i in 1:nrow(consensus_df)
+        key = consensus_df[i, :provirus_name]
+        consensus_df[i, :predictor_average_coverage] = predcov_dict[key].final_averagecov
+        consensus_df[i, :predictor_stddev_coverage] = predcov_dict[key].final_standad_deviation_cov
+    end
+
+    return consensus_df
+end
+
+# consensus_df = calculate_predcov!(dfj, consensus_df)
+
+
 function merge_integrated!(inref::FnaP, checkV::ProjCheckVIntegrated, dfj::DataFrame, parentD::String) # I need to chck if the ouput files exist and if they are empty
 
-    #make a new row for the right part of the circular prophages predicted by VS2
+    #make a new row for the right part of the prophages spanning the left end of the contig (overllaping on the left DTR)
     for i in 1:nrow(dfj)
         if ("splitprovir" in names(dfj) && ismissing(dfj[i, :splitprovir]) == false)
+
+            actual_pred = Symbol()
+            for pred in checkV.predictors 
+                if String(pred) in names(dfj) && !ismissing(dfj[i, pred])
+                    actual_pred = pred
+                end
+            end
+
             newrow = Dict(:seq_name => dfj[i, :seq_name],
                             :contig_name => dfj[i, :contig_name],
                             :splitprovir => dfj[i, :seq_name],
                             :provir_start_cor => dfj[i, :r_provir_start_cor],
                             :provir_end_cor => dfj[i, :r_provir_end_cor],
-                            :predictor_virSorter2 => "yes")
+                            actual_pred => "yes")
 
             push!(dfj, newrow; cols = :union)
         end
     end
 
     # merge overlapping proviruses
-    consensus_df = group_proviruses!(dfj, checkV.predictors)  # this is modifying the input df!!! I should save it again to the HDD
+    consensus_df = group_proviruses!(dfj, checkV.predictors, checkV.merge_circ_proph)  # this is modifying the input df!!! I should save it again to the HDD
     consensus_df[!, :virus_type_DoViP] = fill("Integrated", nrow(consensus_df))
+
+    # bring provirus_name in dfj (it is missing for circular proviruses)
+    dfj = bring_circ_provirus_names!(dfj, consensus_df)
 
     # save dfj, which now contains the name of the merged provirus as well (it was modified by group_proviruses)
     CSV.write("$(parentD)/$(checkV.postcheckv1_integrated_cor_withmergedprovirIDs_df.p)", dfj, delim = '\t', header = true)
+
+    # calculate predictor coverage
+    consensus_df = calculate_predcov!(dfj, consensus_df, checkV.predictors)
 
     # save df with merged proviruses
     CSV.write("$(parentD)/$(checkV.merged_integrated_DF.p)", consensus_df, delim = '\t', header = true)
@@ -834,22 +1014,17 @@ function postcheckV_nonintegrated!(proj::ProjCheckVNonintegrated, mergeddf::Data
         mergeddf = leftjoin!(mergeddf, checkV_summary_df, on = [:virus_name => :contig_id, :virus_length => :contig_length])
         mergeddf = leftjoin!(mergeddf, checkV_complete_df, on = [:virus_name => :contig_id, :virus_length => :contig_length])
         
-        # export a fasta file with the non-integrated viruses, untrimmed contigs
-        contigNameSel(FnaP("$(parentD)/$(proj.output_aggregated_fna.p)"), FnaP("$(parentD)/$(proj.postcheckV_nonintegrated_fna.p)"), mergeddf[!, :virus_name])
-
-        # export a fasta file with the non-integrated viruses, trimmed contigs
+        # prepare mergedDF tp export a fasta file with the non-integrated viruses, trimmed contigs
         mergeddf[!, :trimm] = Vector{Bool}(undef, nrow(mergeddf))
         mergeddf[!, :contig_end_for_saving] = Vector{Union{Missing, Int64}}(missing, nrow(mergeddf))
         mergeddf[!, :virus_name_trimmed] = fill("", nrow(mergeddf))
         
-        trim = 0
         for i in 1:nrow(mergeddf)
             # no need to check completeness, because if DTR or ITR is present in this column, completeness is always 100
             if occursin("DTR", mergeddf[i, :completeness_method_checkV]) #|| occursin("ITR", mergeddf[i, :completeness_method_checkV])
                 mergeddf[i, :trimm] = true
                 mergeddf[i, :contig_end_for_saving] = mergeddf[i, :contig_trimmed_end]
                 mergeddf[i, :virus_name_trimmed] = "$(mergeddf[i, :virus_name])_trimmed"
-                trim += 1
             else
                 mergeddf[i, :trimm] = false
                 mergeddf[i, :contig_end_for_saving] = mergeddf[i, :contig_full_end]
@@ -857,12 +1032,8 @@ function postcheckV_nonintegrated!(proj::ProjCheckVNonintegrated, mergeddf::Data
             end
         end
 
-        if trim > 0
-            contigExtractRegions(FnaP("$(parentD)/$(proj.output_aggregated_fna.p)"), FnaP("$(parentD)/$(proj.postcheckV_nonintegrated_fna_trimmed_DTR.p)"), mergeddf[!, :virus_name], mergeddf[!, :virus_name_trimmed], mergeddf[!, :virus_start], mergeddf[!, :contig_end_for_saving])
-        end
-
         # remove the column contig_end_for_saving
-        select!(mergeddf, Not(:contig_end_for_saving))
+        # select!(mergeddf, Not(:contig_end_for_saving))
         # save NONINTEGRATED df after checkV
         CSV.write("$(parentD)/$(proj.postcheckV_nonintegrated_df_p.p)", mergeddf, delim='\t', header = true)
     end
@@ -889,34 +1060,165 @@ function merge_postCheckV_phaTYP_nonIntegrated!(phatypdf_p::TableP, indf_p::Tabl
     return jdf
 end
 
-function detect_mixed_virs(proj::ProjDetectMixedViruses, parentD::String)
-    indf_int = CSV.read("$(parentD)/$(proj.inDf_Int.p)", DataFrame; delim = '\t', header=1)
-    indf_nonint = CSV.read("$(parentD)/$(proj.inDf_NonInt.p)", DataFrame; delim = '\t', header=1)
+"""
+    transfer_predictors(nonintMixed_tsv::DataFrame, intMixed_tsv::DataFrame, predictors_v::Vector{Symbol})
+    This function brings the predictor data from the mixedInt Df to the nonInt Df (Based on the idea that, if a contig was predicted as NONINTEGRATED by some initial predictors and confirmed by CheckV, 
+        then its merging with overlapping INTEGRATED viral sequences results in the same contig, full length)
+"""
+function transfer_predictors(nonintMixed_tsv::DataFrame, intMixed_tsv::DataFrame, predictors_v::Vector{Symbol})
+    nonintMixed_df = deepcopy(nonintMixed_tsv)
 
-    mixed_contigs = intersect(indf_nonint[!, :contig_name], indf_int[!, :contig_name])
+    nonintMixed_df[!, :mixed] = fill("", nrow(nonintMixed_df))
+    nonintMixed_df[!, :check_mixed] = fill("", nrow(nonintMixed_df))
+    nonintMixed_df[!, :orig_NonInt_predictors] = fill("", nrow(nonintMixed_df))
+    
+    for i in 1:nrow(nonintMixed_df)
 
-    if length(mixed_contigs) != 0
-        for i in nrow(indf_int):-1:1
-            if !(indf_int[i, :contig_name] in mixed_contigs)
-                deleteat!(indf_int, i)
+        # identify original NonInt predictors
+        orig_pred_v = Vector{String}()
+        for pred in predictors_v
+            if ("$pred" in names(nonintMixed_df) && !ismissing(nonintMixed_df[i, pred]) && nonintMixed_df[i, pred] == "yes")
+                push!(orig_pred_v, "$(pred)") 
             end
         end
+        nonintMixed_df[i, :orig_NonInt_predictors] = find_consensus(orig_pred_v)
 
-        for i in nrow(indf_nonint):-1:1
-            if !(indf_nonint[i, :contig_name] in mixed_contigs)
-                deleteat!(indf_nonint, i)
+        # transfer perdictors from int_df
+        for j in 1:nrow(intMixed_tsv)
+            if intMixed_tsv[j, :contig_name] == nonintMixed_df[i, :contig_name]
+                nonintMixed_df[i, :mixed] = "yes"
+                for pred in predictors_v
+                    #println("i is $i, j is $j and pred is $pred")
+                    if ("$pred" in names(nonintMixed_df) && ismissing(nonintMixed_df[i, pred]) || nonintMixed_df[i, pred] == "") && ("$pred" in names(intMixed_tsv) && !ismissing(intMixed_tsv[j, pred]) && intMixed_tsv[j, pred]  == "yes")
+                        nonintMixed_df[i, pred] = "yes"
+                    end                            
+                end
+                # do not merge int-viruses with non-int viruses if the non-int are larger by more than 5 times than the int 
+                if (nonintMixed_df[i, :virus_length]/intMixed_tsv[j, :length]) > 4
+                    nonintMixed_df[i, :check_mixed] = "yes"
+                end
             end
         end
+    end
 
-    CSV.write("$(parentD)/$(proj.outDf_Int.p)", indf_int, delim = '\t', header = true)
-    CSV.write("$(parentD)/$(proj.outDf_NonInt.p)", indf_nonint, delim = '\t', header = true)
+    return nonintMixed_df
+end
+
+function export_nonint_fna(df::DataFrame, infna::FnaP, fullfna_p::FnaP, trimfna_p::FnaP, parentD::String)
+    # export a fasta file with the non-integrated viruses, untrimmed contigs
+    contigNameSel(FnaP("$(parentD)/$(infna.p)"), FnaP("$(parentD)/$(fullfna_p.p)"), df[!, :virus_name])
+
+    # export a fasta file with non-integrated viruses, DTR right end trimmed
+    trim = 0
+    for i in 1:nrow(df)
+        if df[i, :trimm] == true
+        trim += 1 
+        end
+    end
+
+    if trim > 0
+        contigExtractRegions(FnaP("$(parentD)/$(infna.p)"), FnaP("$(parentD)/$(trimfna_p.p)"), df[!, :virus_name], df[!, :virus_name_trimmed], df[!, :virus_start], df[!, :contig_end_for_saving])
     end
 
     return nothing
 end
 
+function detect_mixed_virs(proj::ProjDetectMixedViruses, parentD::String)
+    indf_int_o = nothing
+    indf_nonint_o = nothing
+
+    outNonIntDf = nothing
+    outIntDf = nothing
 
 
+    if isfile("$(parentD)/$(proj.inDf_Int.p)")
+        println("file 05_int is")
+        indf_int_o = CSV.read("$(parentD)/$(proj.inDf_Int.p)", DataFrame; delim = '\t', header=1)
+        mixedInt_df = deepcopy(indf_int_o)
+    end
+
+    if isfile("$(parentD)/$(proj.inDf_NonInt.p)")
+        indf_nonint_o = CSV.read("$(parentD)/$(proj.inDf_NonInt.p)", DataFrame; delim = '\t', header=1)
+        mixedNonInt_df = deepcopy(indf_nonint_o)
+    end
+
+    if isfile("$(parentD)/$(proj.inDf_Int.p)") && isfile("$(parentD)/$(proj.inDf_NonInt.p)")
+        mixed_contigs = intersect(mixedNonInt_df[!, :contig_name], mixedInt_df[!, :contig_name])
+
+        if length(mixed_contigs) != 0
+            for i in nrow(mixedInt_df):-1:1
+                if !(mixedInt_df[i, :contig_name] in mixed_contigs)
+                    deleteat!(mixedInt_df, i)
+                end
+            end
+            CSV.write("$(parentD)/$(proj.outDf_mixed_Int_p.p)", mixedInt_df, delim = '\t', header = true)
+
+            for i in nrow(mixedNonInt_df):-1:1
+                if !(mixedNonInt_df[i, :contig_name] in mixed_contigs)
+                    deleteat!(mixedNonInt_df, i)
+                end
+            end
+            CSV.write("$(parentD)/$(proj.outDf_mixed_nonInt_p.p)", mixedNonInt_df, delim = '\t', header = true)
+
+            # transfer predictor info from the INTEGRATED to the NONINTEGRATED mixed virus contigs
+            outNonIntDf = transfer_predictors(indf_nonint_o, mixedInt_df, proj.predictors)
+            CSV.write("$(parentD)/$(proj.outDf_resolved_nonInt_p.p)", outNonIntDf, delim = '\t', header = true)
+
+
+            #clean the int_df by removing proviruses found on contigs also predicted as nonintegrated
+            outIntDf = indf_int_o
+            for i in nrow(outIntDf):-1:1
+                if outIntDf[i, :contig_name] in mixed_contigs
+                    deleteat!(outIntDf, i)
+                end
+            end
+
+            if nrow(outIntDf) > 0
+                CSV.write("$(parentD)/$(proj.outDf_resolved_Int_p.p)", outIntDf, delim = '\t', header = true)
+            end
+
+        end
+    end
+
+    # export nonintegrated fna
+    if !isnothing(outNonIntDf)
+        export_nonint_fna(outNonIntDf, proj.inFna_NonInt, proj.outFna_nonint_p, proj.outFna_nonint_DTR_trimmed_p, parentD)
+    else
+        if !isnothing(indf_nonint_o)
+            CSV.write("$(parentD)/$(proj.outDf_resolved_nonInt_p.p)", indf_nonint_o, delim = '\t', header = true)
+            export_nonint_fna(indf_nonint_o, proj.inFna_NonInt, proj.outFna_nonint_p, proj.outFna_nonint_DTR_trimmed_p, parentD)
+        end
+    end
+
+    # export integrated fna
+    if !isnothing(outIntDf) && nrow(outIntDf) > 0
+        contigNameSel(FnaP("$(parentD)/$(proj.inFna_Int.p)"), FnaP("$(parentD)/$(proj.outFna_Int_p.p)"), outIntDf[!, :provirus_name]) 
+    else
+        if !isnothing(indf_int_o)
+            CSV.write("$(parentD)/$(proj.outDf_resolved_Int_p.p)", indf_int_o, delim = '\t', header = true)
+            contigNameSel(FnaP("$(parentD)/$(proj.inFna_Int.p)"), FnaP("$(parentD)/$(proj.outFna_Int_p.p)"), indf_int_o[!, :provirus_name]) 
+        end
+    end
+    return nothing
+end
+
+"""
+    post_genomadTax(genomad_out_df_p::TableP, prev_df_p::TableP, col::Symbol, parentD::String)
+    Bring genomad taxonomy in the NonIntegrated and INTEGRATED viral sequences tables
+"""
+function post_genomadTax(proj::ProjGenomadTax, col::Symbol, parentD::String)
+    genomad_out_df = CSV.read("$(parentD)/$(proj.genomadtax_out_table_p.p)", DataFrame; delim = '\t', header =1)
+    select!(genomad_out_df, [:seq_name, :taxid, :lineage])
+    rename!(genomad_out_df, :taxid => :genomadTax_taxid, :lineage => :genomadTax_lineage)
+    
+    prev_df = CSV.read("$(parentD)/$(proj.previous_df.p)", DataFrame; delim = '\t', header =1)
+
+    leftjoin!(prev_df, genomad_out_df, on = [col => :seq_name])
+
+    CSV.write("$(parentD)/$(proj.postgenomadtax_df.p)", prev_df; delim = '\t', header = true )
+
+    return nothing
+end
 
 function apply_thresholds!(proj::FinalThresholding, name_col::Symbol, parentD::String, orderfun::Function, sample_name::String, sample_set::String)
 
@@ -924,8 +1226,7 @@ function apply_thresholds!(proj::FinalThresholding, name_col::Symbol, parentD::S
         tdf = CSV.read("$(parentD)/$(proj.inTsv.p)", DataFrame; delim = '\t', header = 1)
         tdf[!, :predictors_total] = Vector{Union{Missing, Int64}}(missing, nrow(tdf))
         
-        println("
-Inital predictors for this branch are $(proj.predictors)")
+        println("\nInital predictors for this branch are $(proj.predictors)")
 
         for i in nrow(tdf):-1:1
             pc = 0
@@ -937,8 +1238,14 @@ Inital predictors for this branch are $(proj.predictors)")
             end
 
             tdf[i, :predictors_total] = pc
+
+            if name_col == :provirus_name
+                th = tdf[i, :predictor_average_coverage]
+            elseif name_col == :virus_name
+                th = pc 
+            end
              
-            if tdf[i, :completeness_checkV] == "NA" && pc < proj.th_num_predictors_CheckV_NA
+            if tdf[i, :completeness_checkV] == "NA" && th < proj.th_num_predictors_CheckV_NA
                 deleteat!(tdf, i)
             elseif tdf[i, :completeness_checkV] != "NA"
                 if typeof(tdf[i, :completeness_checkV]) == Float64
@@ -949,33 +1256,33 @@ Inital predictors for this branch are $(proj.predictors)")
     
                 host_genes = ((tdf[i, :host_genes_checkV] * 100) / tdf[i, :gene_count_checkV])
     
-                if pc == 1 && host_genes >= 60
+                if th == 1 && host_genes >= 60
                     deleteat!(tdf, i)
                 elseif occursin("AAI-based (high-confidence)", tdf[i, :completeness_method_checkV])
-                    if (completeness < 90) && (pc < proj.th_num_predictors_CheckV_AAIHighConf || completeness <= proj.th_completeness_CheckV_AAIHighConf)
+                    if (completeness < 90) && (th < proj.th_num_predictors_CheckV_AAIHighConf || completeness <= proj.th_completeness_CheckV_AAIHighConf)
                         deleteat!(tdf, i)
                     end
                 elseif occursin("AAI-based (medium-confidence)", tdf[i, :completeness_method_checkV])
-                    if pc < proj.th_num_predictors_CheckV_AAIMediumConf || completeness <= proj.th_completeness_CheckV_AAIMediumConf
+                    if th < proj.th_num_predictors_CheckV_AAIMediumConf || completeness <= proj.th_completeness_CheckV_AAIMediumConf
                         deleteat!(tdf, i)
                     end
                 elseif occursin("HMM-based (lower-bound)", tdf[i, :completeness_method_checkV])
-                    if pc < proj.th_num_predictors_CheckV_HMM || completeness <= proj.th_completeness_CheckV_HMM
+                    if th < proj.th_num_predictors_CheckV_HMM || completeness <= proj.th_completeness_CheckV_HMM
                         deleteat!(tdf, i)
                     end
                 elseif occursin("DTR", tdf[i, :completeness_method_checkV]) || occursin("ITR", tdf[i, :completeness_method_checkV]) 
                         if occursin("AAI-based", tdf[i, :completeness_confidence_reason_checkV]) 
                             # I will not check completeness, because if DTR or ITR is pressent, completeness is always 100
-                            if ismissing(proj.th_num_predictors_CheckV_DTR_ITR_AAI) == false && pc < proj.th_num_predictors_CheckV_DTR_ITR_AAI
+                            if ismissing(proj.th_num_predictors_CheckV_DTR_ITR_AAI) == false && th < proj.th_num_predictors_CheckV_DTR_ITR_AAI
                                 deleteat!(tdf, i)
                             end
                         elseif occursin("HMM-based", tdf[i, :completeness_confidence_reason_checkV])
-                            if ismissing(proj.th_num_predictors_CheckV_DTR_ITR_HMM) == false && pc < proj.th_num_predictors_CheckV_DTR_ITR_HMM
+                            if ismissing(proj.th_num_predictors_CheckV_DTR_ITR_HMM) == false && th < proj.th_num_predictors_CheckV_DTR_ITR_HMM
                                 deleteat!(tdf, i)
                             end
                         end
                 else
-                    if pc < 3
+                    if th < 3
                         deleteat!(tdf, i)
                     end   
                 end
@@ -983,14 +1290,16 @@ Inital predictors for this branch are $(proj.predictors)")
             
         end
 
-        if !ismissing(proj.inFna_trimmed_DTR) && isfile("$(parentD)/$(proj.inFna_trimmed_DTR.p)")
-            contigNameSel(FnaP("$(parentD)/$(proj.inFna_trimmed_DTR.p)"), FnaP("$(parentD)/$(proj.outFna_trimmed_DTR.p)"), tdf[!, :virus_name_trimmed])
+        if nrow(tdf) > 0 
+            if !ismissing(proj.inFna_trimmed_DTR) && isfile("$(parentD)/$(proj.inFna_trimmed_DTR.p)")
+                contigNameSel(FnaP("$(parentD)/$(proj.inFna_trimmed_DTR.p)"), FnaP("$(parentD)/$(proj.outFna_trimmed_DTR.p)"), tdf[!, :virus_name_trimmed])
+            end
+
+            tdf = orderfun(tdf, sample_name, sample_set)
+
+            CSV.write("$(parentD)/$(proj.outTsv.p)", tdf, delim = '\t', header = true)
+            contigNameSel(FnaP("$(parentD)/$(proj.inFna.p)"), FnaP("$(parentD)/$(proj.outFnaP.p)"), tdf[!, name_col])
         end
-
-        tdf = orderfun(tdf, sample_name, sample_set)
-
-        CSV.write("$(parentD)/$(proj.outTsv.p)", tdf, delim = '\t', header = true)
-        contigNameSel(FnaP("$(parentD)/$(proj.inFna.p)"), FnaP("$(parentD)/$(proj.outFnaP.p)"), tdf[!, name_col])
     end
 
     return nothing

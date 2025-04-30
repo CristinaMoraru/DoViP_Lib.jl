@@ -1,7 +1,7 @@
 export ProjSViP_fun
 
 function set_contig_length(inref::FnaP, pd::String, sampleName::String, min_contig_length::Int64) 
-    sp = "ALL_00"
+    sp = "00_All"
     dir = "$(sampleName)/$(sp)_min_length_$(min_contig_length)"
     my_mkpath(["$(pd)/$(dir)"])    
     
@@ -16,13 +16,11 @@ set_shape_contigs() = missing
 
 function set_predictors(dosteps::Dict{String, WorkflowStatus}) 
     predictors_all = Vector{Symbol}()
-    predictors_Int = Vector{Symbol}()
     
     for (k, v) in dosteps
         if k == "genomad" #, "DVF", "virSorter2", "vibrant"]
             if v.signal == "use" || v.signal == "do" || v.signal == "use_external"
                 push!(predictors_all, :predictor_genomad)
-                push!(predictors_Int, :predictor_genomad)
             end
         elseif k == "DVF"
             if v.signal == "use" || v.signal == "do" || v.signal == "use_external"
@@ -31,12 +29,10 @@ function set_predictors(dosteps::Dict{String, WorkflowStatus})
         elseif k == "virSorter2"
             if v.signal == "use" || v.signal == "do" || v.signal == "use_external"
                 push!(predictors_all, :predictor_virSorter2)
-                push!(predictors_Int, :predictor_virSorter2)
             end
         elseif k == "vibrant"
             if v.signal == "use" || v.signal == "do" || v.signal == "use_external"
                 push!(predictors_all, :predictor_vibrant)
-                push!(predictors_Int, :predictor_vibrant)
             end
         elseif  k == "viralVerify"
             if v.signal == "use" || v.signal == "do" || v.signal == "use_external"
@@ -44,11 +40,11 @@ function set_predictors(dosteps::Dict{String, WorkflowStatus})
             end
         end
     end
-    return predictors_all, predictors_Int
+    return predictors_all
 end
 
 function set_ProjGenomad(pd::String, sampleName::String, inref::FnaP, args::Vector{String}, signal::String)
-    sp = "ALL-01a"  # step prefix
+    sp = "01a_ALL"  # step prefix
     genomad_D = "$(sampleName)/$(sp)_genomad"
     my_mkpath(["$(pd)/$(genomad_D)"])
 
@@ -91,7 +87,7 @@ function set_ProjGenomad(pd::String, sampleName::String, inref::FnaP, args::Vect
     if signal == "use_external"
         genomad = nothing
     else
-        genomad = WrapCmd(; cmd = RunGenomadCmd("end-to-end", inref, out_genomad_D, genomadDB_p, min_score), 
+        genomad = WrapCmd(; cmd = RunGenomadCmd("end-to-end", inref, out_genomad_D, genomadDB_p, min_score, genomad_cpus_per_task, nothing), 
                             log_p = "$(genomadLogs_predict_D)/genomad.log", err_p = "$(genomadLogs_predict_D)/genomad.err", 
                             exit_p = "$(genomadLogs_predict_D)/genomad.exit", env = genomad_env,
                             sbatch_maxtime = genomad_sbatch_time, sbatch_cpuspertask = genomad_cpus_per_task, sbatch_mem = genomad_sbatch_mem)
@@ -102,23 +98,32 @@ function set_ProjGenomad(pd::String, sampleName::String, inref::FnaP, args::Vect
     return proj
 end
 
-function set_ProjDVF(pd::String, sampleName::String, inref::FnaP, args::Vector{String}, min_contig_length::Int64)
-    sp = "ALL-01b"
+function set_ProjDVF(pd::String, sampleName::String, inref::FnaP, args::Vector{String}, min_contig_length::Int64, signal::String)
+    sp = "01b_ALL"
     DVF_D = "$sampleName/$(sp)_DVF"
-    outDVF = "$(DVF_D)/$(sp)_01_DVF_out"
-    DVFLogs_D = "$outDVF/logs"
-    my_mkpath(["$(pd)/$(DVFLogs_D)"])
+    my_mkpath(["$(pd)/$(DVF_D)"])
 
-    DVF_env = extract_args(args, "DVF_env")
-    DVF_p = extract_args(args, "DVF_p")
+    if signal == "use_external"
+        ext_res = true
+        ext_res_D = extract_inPaths(args, "dvf_res")
+        outDVF = ""
+    else
+        ext_res = false
+        ext_res_D = nothing
+        outDVF = "$(DVF_D)/$(sp)_01_DVF_out"
+        DVFLogs_D = "$outDVF/logs"
+        my_mkpath(["$(pd)/$(DVFLogs_D)"])
 
-    #resources
-    DVF_sbatch_time = extract_args(args, "DVF_sbatch_time")
-    DVF_cpus_per_task = extract_args(args, "DVF_cpus_per_task", Int64, 15, 1, 200)
-    DVF_sbatch_mem = extract_args(args, "DVF_sbatch_mem")
+        DVF_env = extract_args(args, "DVF_env")
+        DVF_p = extract_args(args, "DVF_p")
+    
+        #resources
+        DVF_sbatch_time = extract_args(args, "DVF_sbatch_time")
+        DVF_cpus_per_task = extract_args(args, "DVF_cpus_per_task", Int64, 15, 1, 200)
+        DVF_sbatch_mem = extract_args(args, "DVF_sbatch_mem")
+    end
 
     #contig len
-    #DVF_minContigLen = extract_args(args, "DVF_minContigLen", Int64, 100, 1, 2099000)
     DVF_maxContigLen = extract_args(args, "DVF_maxContigLen", Int64, 2099000, 1, 2099000)
 
     #scores
@@ -129,24 +134,26 @@ function set_ProjDVF(pd::String, sampleName::String, inref::FnaP, args::Vector{S
     cleaned_dvf_input_f = "$outDVF/$(sampleName)_sizeForDVF.fna" |> FnaP
     output_dvf_f = "$outDVF/$(basename(cleaned_dvf_input_f.p))_gt$(min_contig_length)bp_dvfpred.txt" |> TableP
     modif_output_dvf_f = "$outDVF/$(getFileName(output_dvf_f.p))_modif.txt" |> TableP
-    postdfv_nonintegrated_fna = "$DVF_D/$(sp)_postdfv_nonintegrated.fna" |> FnaP
     postdvf_nonintegrated_df = "$DVF_D/$(sp)_postdfvf_nonintegrated_df.tsv" |> TableP
 
     todelete = [cleaned_dvf_input_f.p]
 
-
-    runDVF = WrapCmd(; cmd = RunDVFCmd(DVF_p, cleaned_dvf_input_f, outDVF, min_contig_length, DVF_cpus_per_task), 
-                    log_p = "$(DVFLogs_D)/DVF.log", err_p = "$(DVFLogs_D)/DVF.err", exit_p = "$(DVFLogs_D)/DVF.exit", env = DVF_env,
-                    sbatch_maxtime = DVF_sbatch_time, sbatch_cpuspertask = DVF_cpus_per_task, sbatch_mem = DVF_sbatch_mem)
+    if signal == "use_external"
+        runDVF = nothing
+    else
+        runDVF = WrapCmd(; cmd = RunDVFCmd(DVF_p, cleaned_dvf_input_f, outDVF, min_contig_length, DVF_cpus_per_task), 
+                        log_p = "$(DVFLogs_D)/DVF.log", err_p = "$(DVFLogs_D)/DVF.err", exit_p = "$(DVFLogs_D)/DVF.exit", env = DVF_env,
+                        sbatch_maxtime = DVF_sbatch_time, sbatch_cpuspertask = DVF_cpus_per_task, sbatch_mem = DVF_sbatch_mem)
+    end
     
-    proj = ProjDVF(DVF_D, inref, DVF_maxContigLen, runDVF, DVF_scoreTh, DVF_pThreshold, output_dvf_f, modif_output_dvf_f, 
-                    postdfv_nonintegrated_fna, postdvf_nonintegrated_df, todelete)
+    proj = ProjDVF(DVF_D, ext_res, ext_res_D, inref, DVF_maxContigLen, runDVF, DVF_scoreTh, DVF_pThreshold, output_dvf_f, modif_output_dvf_f, 
+                    postdvf_nonintegrated_df, todelete)
 
     return proj
 end
 
 function set_ProjVirSorter2(pd::String, sampleName::String, inref::FnaP, args::Vector{String}, signal::String, min_contig_length::Int64)
-    sp = "ALL-01c"
+    sp = "01c_ALL"
     virSorter2_D = "$sampleName/$(sp)_virSorter2"
     my_mkpath(["$(pd)/$(virSorter2_D)"])
 
@@ -194,7 +201,7 @@ function set_ProjVirSorter2(pd::String, sampleName::String, inref::FnaP, args::V
 end
 
 function set_ProjVIBRANT(pd::String, sampleName::String, inref::FnaP, args::Vector{String}, signal::String, min_contig_length::Int64)
-    sp = "ALL-01d"
+    sp = "01d_ALL"
     vibrant_D = "$sampleName/$(sp)_vibrant"
     my_mkpath(["$(pd)/$(vibrant_D)"])
 
@@ -247,7 +254,7 @@ function set_ProjVIBRANT(pd::String, sampleName::String, inref::FnaP, args::Vect
 end
 
 function set_ProjViralVerify(pd::String, sampleName::String, inref::FnaP, args::Vector{String}, signal::String) #pd::String
-    sp = "ALL-01e"
+    sp = "01e_ALL"
     vv_D = "$(sampleName)/$(sp)_viralVerify"     # relative folder
     my_mkpath(["$(pd)/$(vv_D)"])                 # absolute path
 
@@ -287,9 +294,8 @@ function set_ProjViralVerify(pd::String, sampleName::String, inref::FnaP, args::
     return proj
 end
 
-
 function set_ProjCheckVNonintegrated(pd::String, input_dfs_2_aggregate::Vector{TableP}, args::Vector{String}, sampleName::String)
-    sp = "N-02"
+    sp = "02_N-01"
     checkVNonintegrated_D = "$(sampleName)/$(sp)_checkV_Nonintegrated"
     outcheckV_D = "$(checkVNonintegrated_D)/$(sp)_01_checkV"
     checkVNonintegratedLogs_D = "$outcheckV_D/logs"
@@ -302,8 +308,6 @@ function set_ProjCheckVNonintegrated(pd::String, input_dfs_2_aggregate::Vector{T
     checkV_out_nonintegrated_complete_df = "$(outcheckV_D)/complete_genomes.tsv" |> TableP
     checkV_out_provir_fna = "$(outcheckV_D)/proviruses.fna" |> FnaP
     postcheckV_nonintegrated_df_p = "$(checkVNonintegrated_D)/$(sp)_02_postcheckV_nonintegrated_df.tsv" |> TableP
-    postcheckV_nonintegrated_fna = "$(checkVNonintegrated_D)/$(sp)_02_postcheckV_nonintegrated.fna" |> FnaP
-    postcheckV_nonintegrated_fna_trimmed_DTR = "$(checkVNonintegrated_D)/$(sp)_02_postcheckV_nonintegrated_trimmed_DTR.fna" |> FnaP
     postcheckV_integrated_df_p = "$(checkVNonintegrated_D)/$(sp)_02_postcheckV_integrated.tsv" |> TableP
 
     checkV_env = extract_args(args, "checkv_env")
@@ -321,12 +325,12 @@ function set_ProjCheckVNonintegrated(pd::String, input_dfs_2_aggregate::Vector{T
                                         exit_p = "$(checkVNonintegratedLogs_D)/checkVNonintegrated.exit", env = checkV_env,
                                         sbatch_maxtime = checkv_sbatch_time, sbatch_cpuspertask = checkv_cpus_per_task, sbatch_mem = checkv_sbatch_mem),
                                         checkV_nonintegrated_summary_df, checkV_out_nonintegrated_complete_df, checkV_out_provir_fna, 
-                                        postcheckV_nonintegrated_df_p, postcheckV_nonintegrated_fna, postcheckV_nonintegrated_fna_trimmed_DTR, postcheckV_integrated_df_p) 
+                                        postcheckV_nonintegrated_df_p, postcheckV_integrated_df_p) 
     return proj
 end
 
 function set_ProjCheckVIntegrated(pd::String, input_dfs_2_aggregate::Vector{TableP}, predictors::Vector{Symbol}, args::Vector{String}, sampleName::String)
-    sp = "I-02"
+    sp = "03_I-01"
     checkVIntegrated_D = "$(sampleName)/$(sp)_checkV_Integrated"
     
     checkV_env = extract_args(args, "checkv_env")
@@ -336,6 +340,7 @@ function set_ProjCheckVIntegrated(pd::String, input_dfs_2_aggregate::Vector{Tabl
     checkv_sbatch_time = extract_args(args, "checkv_sbatch_time")
     checkv_cpus_per_task = extract_args(args, "checkv_cpus_per_task", Int64, 2, 1, 200)
     checkv_sbatch_mem = extract_args(args, "checkv_sbatch_mem")
+    merge_circ_proph = extract_args(args, "merge_circ_proph", Bool, "true")
 
     output_aggregated_int_contigs_fna = "$(checkVIntegrated_D)/$(sp)_00_aggregated_integrated_virus_contigs.fna" |> FnaP
     output_aggregated_df = "$checkVIntegrated_D/$(sp)_00_aggregated_integrated_virus_All_regions.tsv" |> TableP 
@@ -387,6 +392,7 @@ function set_ProjCheckVIntegrated(pd::String, input_dfs_2_aggregate::Vector{Tabl
                     postcheckv1_integrated_cor_df,
                     postcheckv1_integrated_cor_withmergedprovirIDs_df,
                     predictors,
+                    merge_circ_proph,
                     merged_integrated_DF,
                     merged_integrated_fna,
                     checkV2,
@@ -397,8 +403,8 @@ function set_ProjCheckVIntegrated(pd::String, input_dfs_2_aggregate::Vector{Tabl
     return proj
 end
 
-function set_ProjPhaTYPNonintegrated(pd::String, checkV_NonIntegrated::ProjCheckVNonintegrated, args::Vector{String}, sampleName::String, min_contig_length::Int64)
-    sp = "N-03"
+function set_ProjPhaTYPNonintegrated(pd::String, infna::FnaP, indf::TableP, args::Vector{String}, sampleName::String, min_contig_length::Int64)
+    sp = "05_N-02"
     phaTYPNonintegrated_D = "$sampleName/$(sp)_phaTYPNonintegrated"
     out_D = "$(phaTYPNonintegrated_D)/$(sp)_01_phaTYP_out"
     phaTYPNonintegratedLogs_D = "$phaTYPNonintegrated_D/logs"
@@ -421,101 +427,96 @@ function set_ProjPhaTYPNonintegrated(pd::String, checkV_NonIntegrated::ProjCheck
     phaTYPNonintegrated_out_df = "$(out_D)/$(res_suffix)/phatyp_prediction.csv" |> TableP
     mergedPostCheckV_PhaTYP_p = "$(phaTYPNonintegrated_D)/$(sp)_02_NonINT_mergedPostCheckV_PhaTYP.tsv" |> TableP
 
-    proj = ProjPhaTYP(phaTYPNonintegrated_D, WrapCmd(; cmd = RunPhaTYPCmd(phaTYP_p, checkV_NonIntegrated.postcheckV_nonintegrated_fna, phaTYPdb_p, phaTYPparam_p,
+    proj = ProjPhaTYP(phaTYPNonintegrated_D, WrapCmd(; cmd = RunPhaTYPCmd(phaTYP_p, infna, phaTYPdb_p, phaTYPparam_p,
                                                         out_D, res_suffix, min_contig_length, phaTYP_cpus_per_task), 
                                                         log_p = "$(phaTYPNonintegratedLogs_D)/phaTYP_NonIntegrated.log", err_p = "$(phaTYPNonintegratedLogs_D)/phaTYP_NonIntegrated.err", 
                                                         exit_p = "$(phaTYPNonintegratedLogs_D)/phaTYP_NonIntegrated.exit", env = phaTYP_env,
                                                         sbatch_maxtime = phaTYP_sbatch_time, sbatch_cpuspertask = phaTYP_cpus_per_task, sbatch_mem = phaTYP_sbatch_mem),
-                    phaTYPNonintegrated_out_df, mergedPostCheckV_PhaTYP_p)
+                        indf, phaTYPNonintegrated_out_df, mergedPostCheckV_PhaTYP_p)
 
     return proj
 end
 
-#=
-function set_ProjPhaTYPIntegrated(pd::String, checkV_Integrated::ProjCheckVIntegrated, num_threads::Int64, args::Vector{String})
-    sp = "0xI"
-    phaTYP_integrated_D = "$pd/$(sp)_phaTYP_integrated"
-    out_D = "$(phaTYP_integrated_D)/$(sp)_01_phaTYP_out"
-    phaTYP_integratedLogs_D = "$phaTYP_integrated_D/logs"
-    my_mkpath([phaTYP_integrated_D, out_D, phaTYP_integratedLogs_D])
 
-    phaTYP_env = extract_args(args, "phaTYP_env")
-    phaTYP_p = extract_args(args, "phaTYP_p")
-    phaTYPdb_p = extract_args(args, "phaTYPdb_p")
-    phaTYPparam_p = extract_args(args, "phaTYPparam_p")
-    res_suffix = "results"
-
-    #contig len
-    DVF_minContigLen = extract_args(args, "DVF_minContigLen", Int64, 100, 1, 2099000)
-
-    phaTYP_integrated_out_df = "$(out_D)/$(res_suffix)/phatyp_prediction.csv" |> TableP
-
-    proj = ProjPhaTYP(phaTYP_integrated_D, WrapCmd(; cmd = RunPhaTYPCmd(phaTYP_p, checkV_Integrated.merged_integrated_fna, phaTYPdb_p, phaTYPparam_p,
-                                        out_D, res_suffix, DVF_minContigLen, num_threads), 
-            log_p = "$(phaTYP_integratedLogs_D)/phaTYP_integrated.log", err_p = "$(phaTYP_integratedLogs_D)/phaTYP_integrated.err", exit_p = "$(phaTYP_integratedLogs_D)/phaTYP_integrated.exit", env = phaTYP_env),
-            phaTYP_integrated_out_df)
-
-    return proj
-end =#
-
-function set_ProjDetectMixedViruses(pd::String, inDf_NonInt::TableP, inDf_Int::TableP, sampleName::String)
-    sp = "M-02"
+function set_ProjDetectMixedViruses(pd::String, inDf_NonInt::TableP, inFna_NonInt::FnaP, inDf_Int::TableP, inFna_Int::FnaP, sampleName::String, predictors::Vector{Symbol})
+    sp = "04_M"
     mixed_D = "$(sampleName)/$(sp)_Detection"
     my_mkpath(["$(pd)/$(mixed_D)"])
 
-    outDf_Int = "$(mixed_D)/$(sp)_Mixed_Int_Viruses.tsv" |> TableP
-    #outFna_Int = "$(mixed_D)/$(sp)_Mixed_Int_Viruses.fna" |> FnaP
-    outDf_NonInt = "$(mixed_D)/$(sp)_Mixed_NonInt_Viruses.tsv" |> TableP
-    #outFna_NonInt = "$(mixed_D)/$(sp)_Mixed_NonInt_Viruses.fna" |> FnaP
-    #outmixed_df = "$(mixed_D)/$(sp)_Mixed_All_Viruses.tsv" |> TableP
-    #outmixed_fna = "$(mixed_D)/$(sp)_Mixed_all_Viruses.fna" |> FnaP
+    outDf_mixed_Int_p = "$(mixed_D)/$(sp)_00_Mixed_Int_Viruses.tsv" |> TableP
+    outDf_mixed_nonInt_p = "$(mixed_D)/$(sp)_00_Mixed_NonInt_Viruses.tsv" |> TableP
+    outDf_resolved_nonInt_p = "$(mixed_D)/$(sp)_01_resolved_NonInt_Viruses.tsv" |> TableP
+    outDf_resolved_Int_p = "$(mixed_D)/$(sp)_01_resolved_Int_Viruses.tsv" |> TableP
+    outFna_nonint_p = "$(mixed_D)/$(sp)_02_resolved_nonintegrated.fna" |> FnaP
+    outFna_nonint_DTR_trimmed_p = "$(mixed_D)/$(sp)_02_resolved_nonintegrated_trimmed_DTR.fna" |> FnaP
+    outFna_Int_p = "$(mixed_D)/$(sp)_02_resolved_integrated.fna" |> FnaP
 
-    proj = ProjDetectMixedViruses(mixed_D, inDf_Int, inDf_NonInt, outDf_Int, outDf_NonInt) 
+    proj = ProjDetectMixedViruses(mixed_D, inDf_Int, inDf_NonInt, inFna_Int, inFna_NonInt, outDf_mixed_Int_p, outDf_mixed_nonInt_p, predictors, outDf_resolved_nonInt_p, 
+                                    outDf_resolved_Int_p, outFna_nonint_p, outFna_nonint_DTR_trimmed_p, outFna_Int_p) 
 
     return proj
 end
 
-function set_ProjFinalThresholding(pd::String, args::Vector{String}, sp::String, inFna::FnaP, inFna_trimmed_DTR::Union{Missing, FnaP}, inTsv::TableP, predictors::Vector{Symbol}, sampleName::String, predictors2::Union{Vector{Symbol}, Missing} = missing)
+function set_ProjGenomadTax(pd::String, args::Vector{String}, sp::String, inFna::FnaP, inTsv::TableP, genomad_prefix::String, sampleName::String)
+    genomadtax_D = "$(sampleName)/$(sp)_GenomadTax"
+    my_mkpath(["$(pd)/$(genomadtax_D)"])
+
+    out_genomadtax_D = "$(genomadtax_D)/$(sp)_01_genomadtax_out"
+    genomadTaxLogs_predict_D = "$out_genomadtax_D/logs"
+    my_mkpath(["$(pd)/$(genomadTaxLogs_predict_D)"])
+    
+    genomad_env = extract_args(args, "genomad_env")
+    genomadDB_p = extract_inPaths(args, "genomadDB_p")
+    genomad_sbatch_time = extract_args(args, "genomadtax_sbatch_time")
+    genomad_cpus_per_task = extract_args(args, "genomadtax_cpus_per_task", Int64, 20, 1, 200)
+    genomad_sbatch_mem = extract_args(args, "genomadtax_sbatch_mem")
+
+    genomadtax_out_table_p = "$out_genomadtax_D/$(genomad_prefix)_annotate/$(genomad_prefix)_taxonomy.tsv" |> TableP
+    postgenomadtax_df = "$genomadtax_D/$(sp)_02_postgenomadtax_df.tsv" |> TableP
+    
+    genomadtax = WrapCmd(; cmd = RunGenomadCmd("annotate", inFna, out_genomadtax_D, genomadDB_p, nothing, genomad_cpus_per_task, "--conservative-taxonomy"), 
+                            log_p = "$(genomadTaxLogs_predict_D)/genomad.log", err_p = "$(genomadTaxLogs_predict_D)/genomad.err", 
+                            exit_p = "$(genomadTaxLogs_predict_D)/genomad.exit", env = genomad_env,
+                            sbatch_maxtime = genomad_sbatch_time, sbatch_cpuspertask = genomad_cpus_per_task, sbatch_mem = genomad_sbatch_mem)
+
+    proj = ProjGenomadTax(genomadtax_D, genomadtax, genomadtax_out_table_p, inTsv, postgenomadtax_df)
+
+    return proj
+end
+
+function set_ProjFinalThresholding(pd::String, args::Vector{String}, sp::String, inFna::FnaP, inFna_trimmed_DTR::Union{Missing, FnaP}, inTsv::TableP, predictors::Vector{Symbol}, sampleName::String)#, predictors2::Union{Vector{Symbol}, Missing} = missing)
     npd = "$(sampleName)/$(sp)_FinalThresholding"
     my_mkpath(["$(pd)/$(npd)"])
 
-    if sp == "N-04"
-        th_num_predictors_CheckV_NA = extract_args(args, "NONInt_th_num_predictors_CheckV_NA", Int64, 3, 1, 5)
+    if sp == "07_N-04"
+        th_num_predictors_CheckV_NA = extract_args(args, "NONInt_th_num_predictors_CheckV_NA", Float64, 3.0, 1.0, 5.0)
 
-        th_num_predictors_CheckV_AAIHighConf = extract_args(args, "NONInt_th_num_predictors_CheckV_AAIHighConf", Int64, 1, 1, 5)
+        th_num_predictors_CheckV_AAIHighConf = extract_args(args, "NONInt_th_num_predictors_CheckV_AAIHighConf", Float64, 1.0, 1.0, 5.0)
         th_completeness_CheckV_AAIHighConf = extract_args(args, "NONInt_th_completeness_CheckV_AAIHighConf", Float64, 30.0, 1.0, 100.0)
 
-        th_num_predictors_CheckV_AAIMediumConf = extract_args(args, "NONInt_th_num_predictors_CheckV_AAIMediumConf", Int64, 2, 1, 5)
+        th_num_predictors_CheckV_AAIMediumConf = extract_args(args, "NONInt_th_num_predictors_CheckV_AAIMediumConf", Float64, 2.0, 1.0, 5.0)
         th_completeness_CheckV_AAIMediumConf = extract_args(args, "NONInt_th_completeness_CheckV_AAIMediumConf", Float64, 10.0, 1.0, 100.0)
 
-        th_num_predictors_CheckV_HMM = extract_args(args, "NONInt_th_num_predictors_CheckV_HMM", Int64, 2, 1, 5)
+        th_num_predictors_CheckV_HMM = extract_args(args, "NONInt_th_num_predictors_CheckV_HMM", Float64, 2.0, 1.0, 5.0)
         th_completeness_CheckV_HMM = extract_args(args, "NONInt_th_completeness_CheckV_HMM", Float64, 10.0, 1.0, 100.0)
 
-        th_num_predictors_CheckV_DTR_ITR_AAI = extract_args(args, "NONInt_th_num_predictors_CheckV_DTR_ITR_AAI", Int64, 1, 1, 5)
-        th_num_predictors_CheckV_DTR_ITR_HMM = extract_args(args, "NONInt_th_num_predictors_CheckV_DTR_ITR_HMM", Int64, 1, 1, 5)
+        th_num_predictors_CheckV_DTR_ITR_AAI = extract_args(args, "NONInt_th_num_predictors_CheckV_DTR_ITR_AAI", Float64, 1.0, 1.0, 5.0)
+        th_num_predictors_CheckV_DTR_ITR_HMM = extract_args(args, "NONInt_th_num_predictors_CheckV_DTR_ITR_HMM", Float64, 1.0, 1.0, 5.0)
 
-    elseif sp == "I-03"
-        th_num_predictors_CheckV_NA = extract_args(args, "Int_th_num_predictors_CheckV_NA", Int64, 3, 1, 5)
+    elseif sp == "09_I-03"
+        th_num_predictors_CheckV_NA = extract_args(args, "Int_th_num_predictors_CheckV_NA", Float64, 3.0, 1.0, 5.0)
 
-        th_num_predictors_CheckV_AAIHighConf = extract_args(args, "Int_th_num_predictors_CheckV_AAIHighConf", Int64, 1, 1, 5)
+        th_num_predictors_CheckV_AAIHighConf = extract_args(args, "Int_th_num_predictors_CheckV_AAIHighConf", Float64, 1.0, 1.0, 5.0)
         th_completeness_CheckV_AAIHighConf = extract_args(args, "Int_th_completeness_CheckV_AAIHighConf", Float64, 30.0, 1.0, 100.0)
 
-        th_num_predictors_CheckV_AAIMediumConf = extract_args(args, "Int_th_num_predictors_CheckV_AAIMediumConf", Int64, 2, 1, 5)
+        th_num_predictors_CheckV_AAIMediumConf = extract_args(args, "Int_th_num_predictors_CheckV_AAIMediumConf", Float64, 2.0, 1.0, 5.0)
         th_completeness_CheckV_AAIMediumConf = extract_args(args, "Int_th_completeness_CheckV_AAIMediumConf", Float64, 10.0, 1.0, 100.0)
 
-        th_num_predictors_CheckV_HMM = extract_args(args, "Int_th_num_predictors_CheckV_HMM", Int64, 2, 1, 5)
+        th_num_predictors_CheckV_HMM = extract_args(args, "Int_th_num_predictors_CheckV_HMM", Float64, 2.0, 1.0, 5.0)
         th_completeness_CheckV_HMM = extract_args(args, "Int_th_completeness_CheckV_HMM", Float64, 10.0, 1.0, 100.0)
 
         th_num_predictors_CheckV_DTR_ITR_AAI = missing
         th_num_predictors_CheckV_DTR_ITR_HMM = missing
-    elseif sp == "M-03"
-        #= old, I did not implement yet the final thresholding for mixed viruses
-        th_num_predictors = extract_args(args, "th_num_predictors_Mixed_nonint", Int64, 1, 1, 4)
-        th_num_predictors2 = extract_args(args, "th_num_predictors_Mixed_int", Int64, 1, 1, 4)
-        th_checkV_completeness = extract_args(args, "th_checkV_completeness_Mixed_nonint", Float64, 30.0, 1.0, 100.0)
-        th_checkV_completeness2 = extract_args(args, "th_checkV_completeness_Mixed_int", Float64, 30.0, 1.0, 100.0)
-        th_checkV_contamination = extract_args(args, "th_checkV_contamination_Mixed_nonint", Float64, 50.0, 0.0, 100.0)
-        th_checkV_contamination2 = extract_args(args, "th_checkV_contamination_Mixed_int", Float64, 50.0, 0.0, 100.0) =#
     end
 
     out_fna = "$(npd)/$(sp)_Final_Viruses.fna" |> FnaP
@@ -526,7 +527,7 @@ function set_ProjFinalThresholding(pd::String, args::Vector{String}, sp::String,
     end
     out_tsv = "$(npd)/$(sp)_Final_Viruses_df.tsv" |> TableP
 
-    proj = FinalThresholding(npd, inFna, inFna_trimmed_DTR, inTsv, predictors, predictors2, 
+    proj = FinalThresholding(npd, inFna, inFna_trimmed_DTR, inTsv, predictors, #predictors2, 
                             th_num_predictors_CheckV_NA,
                             th_num_predictors_CheckV_AAIHighConf, th_completeness_CheckV_AAIHighConf,
                             th_num_predictors_CheckV_AAIMediumConf, th_completeness_CheckV_AAIMediumConf,
@@ -538,10 +539,10 @@ function set_ProjFinalThresholding(pd::String, args::Vector{String}, sp::String,
 end
 
 
-function ProjSViP_fun(args::Vector{String})
 
-    # num_threads
-    num_threads = extract_args(args, "num_threads", Int64, 1, 1, 40)
+function ProjSViP_fun(args::Vector{String})
+    #user
+    user = extract_args(args, "user")
 
     # continue or not
     cont = extract_args(args, "continue", Bool, "false")
@@ -575,9 +576,9 @@ function ProjSViP_fun(args::Vector{String})
             "genomad" => WorkflowStatus(
                 setsignal(extract_args(args, "genomad_signal", ALLOWED_VALS_PROJ["signal"]), "GeNomad"), 
                 "not_done"),
-            "DVF" => WorkflowStatus(
-                setsignal(extract_args(args, "DVF_signal", ("do", "dont", "use", "ignore", "remove")), "DVF"), 
-                "not_done"),
+            #="DVF" => WorkflowStatus(
+                setsignal(extract_args(args, "DVF_signal", ALLOWED_VALS_PROJ["signal"]), "DVF"), #("do", "dont", "use", "ignore", "remove"))
+                "not_done"), =#
             "virSorter2" => WorkflowStatus(
                 setsignal(extract_args(args, "virSorter2_signal", ALLOWED_VALS_PROJ["signal"]), "virSorter2"),
                  "not_done"),
@@ -592,11 +593,23 @@ function ProjSViP_fun(args::Vector{String})
             "phaTYP_nonintegrated" => WorkflowStatus("do", "not_done"),
             #"phaTYP_integrated" => WorkflowStatus("do", "not_done"),
             "detect_mixed_viruses" => WorkflowStatus("do", "not_done"),
+            "genomadTax_NonInt" => WorkflowStatus("do", "not_done"),
+            "genomadTax_Int" => WorkflowStatus("do", "not_done"),            
             "final_thresholding_NonIntegrated" => WorkflowStatus("do", "not_done"),
             "final_thresholding_Integrated" => WorkflowStatus("do", "not_done")
             #"final_thresholding_Mixed" => WorkflowStatus("do", "not_done")
         )
         
+        if user == "CristinaM"
+            dosteps["DVF"] = WorkflowStatus(
+                setsignal(extract_args(args, "DVF_signal", ALLOWED_VALS_PROJ["signal"]), "DVF"), 
+                "not_done")
+        else
+            dosteps["DVF"] = WorkflowStatus(
+                setsignal(extract_args(args, "DVF_signal", ("do", "dont", "use", "ignore", "remove")), "DVF"),
+                "not_done")
+        end
+
         if (dosteps["genomad"].signal == "dont" &&  dosteps["DVF"].signal == "dont"
             && dosteps["virSorter2"].signal == "dont" && dosteps["vibrant"].signal == "dont"
             && dosteps["viralVerify"].signal == "dont")
@@ -709,9 +722,18 @@ function ProjSViP_fun(args::Vector{String})
             
             dosteps["detect_mixed_viruses"].signal = "use"
             dosteps = setstep_intermediary!(proj, "detect_mixed_viruses", dosteps, "$(pd)/$(proj.detect_mixed_viruses.pd)",
-                                            ["$(pd)/$(proj.detect_mixed_viruses.pd)"]; #["$(pd)/$(proj.final_thresholding_Mixed.pd)"]
-                                            pds2remove_use = ["$(pd)/$(proj.detect_mixed_viruses.pd)"], logfun = printProjSViP)   #["$(pd)/$(proj.final_thresholding_Mixed.pd)"]                  
+                                            ["$(pd)/$(proj.detect_mixed_viruses.pd)"]; 
+                                            pds2remove_use = ["$(pd)/$(proj.detect_mixed_viruses.pd)"], logfun = printProjSViP)                   
 
+            dosteps["genomadTax_NonInt"].signal = "use"
+            dosteps = setstep_intermediary!(proj, "genomadTax_NonInt", dosteps, "$(pd)/$(proj.genomadTax_NonInt.pd)",
+                                            ["$(pd)/$(proj.genomadTax_NonInt.pd)"]; 
+                                            pds2remove_use = ["$(pd)/$(proj.genomadTax_NonInt.pd)"], logfun = printProjSViP)   
+
+            dosteps["genomadTax_Int"].signal = "use"
+            dosteps = setstep_intermediary!(proj, "genomadTax_Int", dosteps, "$(pd)/$(proj.genomadTax_Int.pd)",
+                                            ["$(pd)/$(proj.genomadTax_Int.pd)"]; 
+                                            pds2remove_use = ["$(pd)/$(proj.genomadTax_Int.pd)"], logfun = printProjSViP)   
         else 
             println("
             You have chosen to continue an already existing DoViP project by re-runing, removing or ignoring at least one of the 4 predictors in the INITIAL PREDICTION STEP.
@@ -767,19 +789,27 @@ function ProjSViP_fun(args::Vector{String})
             dosteps = setstep_intermediary!(proj, "checkV_NonIntegrated", dosteps, "$(pd)/$(proj.checkV_NonIntegrated.pd)",
                                             ["$(pd)/$(proj.phaTYP_nonintegrated.pd)", "$(pd)/$(proj.final_thresholding_NonIntegrated.pd)", 
                                             "$(pd)/$(proj.checkV_Integrated.pd)", "$(pd)/$(proj.final_thresholding_Integrated.pd)",
-                                            "$(pd)/$(proj.detect_mixed_viruses.pd)"]; logfun = printProjSViP) #, "$(pd)/$(proj.final_thresholding_Mixed.pd)"
+                                            "$(pd)/$(proj.detect_mixed_viruses.pd)"]; logfun = printProjSViP)
             
             dosteps["checkV_Integrated"].signal = "do"
             dosteps = setstep_intermediary!(proj, "checkV_Integrated", dosteps, "$(pd)/$(proj.checkV_Integrated.pd)",
-                                            ["$(pd)/$(proj.final_thresholding_Integrated.pd)", "$(pd)/$(proj.detect_mixed_viruses.pd)"]; logfun = printProjSViP) #, "$(pd)/$(proj.final_thresholding_Mixed.pd)"
+                                            ["$(pd)/$(proj.final_thresholding_Integrated.pd)", "$(pd)/$(proj.detect_mixed_viruses.pd)"]; logfun = printProjSViP) 
             
             dosteps["phaTYP_nonintegrated"].signal = "do"
             dosteps = setstep_intermediary!(proj, "phaTYP_nonintegrated", dosteps, "$(pd)/$(proj.phaTYP_nonintegrated.pd)",
-                                            ["$(pd)/$(proj.final_thresholding_NonIntegrated.pd)"]; logfun = printProjSViP) #proj.checkV_Integrated.pd, proj.final_thresholding_Integrated.pd,
+                                            ["$(pd)/$(proj.final_thresholding_NonIntegrated.pd)"]; logfun = printProjSViP) 
 
             dosteps["detect_mixed_viruses"].signal = "do"
             dosteps = setstep_intermediary!(proj, "detect_mixed_viruses", dosteps, "$(pd)/$(proj.detect_mixed_viruses.pd)", 
-                                            ["$(pd)/$(proj.detect_mixed_viruses.pd)"]; logfun = printProjSViP) #["$(pd)/$(proj.final_thresholding_Mixed.pd)"]
+                                            ["$(pd)/$(proj.detect_mixed_viruses.pd)"]; logfun = printProjSViP) 
+
+            dosteps["genomadTax_NonInt"].signal = "do"
+            dosteps = setstep_intermediary!(proj, "genomadTax_NonInt", dosteps, "$(pd)/$(proj.genomadTax_NonInt.pd)", 
+                                            ["$(pd)/$(proj.genomadTax_NonInt.pd)"]; logfun = printProjSViP) 
+
+            dosteps["genomadTax_Int"].signal = "do"
+            dosteps = setstep_intermediary!(proj, "genomadTax_Int", dosteps, "$(pd)/$(proj.genomadTax_Int.pd)", 
+                                            ["$(pd)/$(proj.genomadTax_Int.pd)"]; logfun = printProjSViP) 
         end
 
         # these final steps allways have their signal set to do, because they will be recalculated at every project run
@@ -798,7 +828,7 @@ function ProjSViP_fun(args::Vector{String})
     #initialize shape contigs
     #shape_contigs = initialize_step(dosteps, "shape_contigs", set_shape_contigs, (), proj.shape_contigs, cont)
 
-    predictors_all, predictors_Int = set_predictors(dosteps)
+    predictors_all = set_predictors(dosteps)
 
 
     nonintegrated_viruses_to_agregate = Vector{TableP}()
@@ -814,8 +844,8 @@ function ProjSViP_fun(args::Vector{String})
     #endregion
        
     #region viruses with DVF
-    DVF = initialize_step(dosteps, "DVF", set_ProjDVF, (pd, sampleName, contig_length.outref, args, min_contig_length), proj.DVF, cont)
-    if dosteps["DVF"].signal in ["do", "use"]
+    DVF = initialize_step(dosteps, "DVF", set_ProjDVF, (pd, sampleName, contig_length.outref, args, min_contig_length, dosteps["DVF"].signal), proj.DVF, cont)
+    if dosteps["DVF"].signal in ["do", "use", "use_external"]
         push!(nonintegrated_viruses_to_agregate, DVF.postdvf_nonintegrated_df)
     end
     #endregion
@@ -847,53 +877,64 @@ function ProjSViP_fun(args::Vector{String})
     #region Cenote-Taker3 for virus prediction and annotation?
     #endregion
 
-    #region nonintegrated viruses
+    #region nonintegrated viruses - CheckV steps
     if length(nonintegrated_viruses_to_agregate) >= 1
         checkV_NonIntegrated = initialize_step(dosteps, "checkV_NonIntegrated", set_ProjCheckVNonintegrated, (pd, nonintegrated_viruses_to_agregate, args, sampleName), proj.checkV_NonIntegrated, cont)
-
+        # if any proviruses are found by CheckV on the NonIntegrated branch, send them to the .tsv list for agregation into the INTEGRATED branch
         push!(integrated_viruses_to_agregate_df, checkV_NonIntegrated.postcheckV_integrated_df_p)
-
-        phaTYP_NonIntegrated = initialize_step(dosteps, "phaTYP_nonintegrated", set_ProjPhaTYPNonintegrated, (pd, checkV_NonIntegrated, args, sampleName, min_contig_length), proj.phaTYP_nonintegrated, cont)
-        final_thresholding_NonIntegrated = initialize_step(dosteps, "final_thresholding_NonIntegrated", 
-                                                            set_ProjFinalThresholding, 
-                                                            (pd, args, "N-04", checkV_NonIntegrated.postcheckV_nonintegrated_fna, checkV_NonIntegrated.postcheckV_nonintegrated_fna_trimmed_DTR,
-                                                            phaTYP_NonIntegrated.mergedPostCheckV_PhaTYP_p, predictors_all, sampleName), 
-                                                            proj.final_thresholding_NonIntegrated, cont)
     else    
         println("No predictor for non-integrated viruses is activated. If that was not your intention, check your input parameters.")  
         checkV_NonIntegrated = missing
-        phaTYP_NonIntegrated = missing
-        final_thresholding_NonIntegrated = missing
     end
     #endregion
 
-    #region integrated viruses
+    #region integrated viruses - checkV steps
     if length(integrated_viruses_to_agregate_df) >= 1 #&& length(integrated_viruses_to_agregate_fna) >= 1
         checkV_Integrated = initialize_step(dosteps, "checkV_Integrated", set_ProjCheckVIntegrated, (pd, integrated_viruses_to_agregate_df, predictors_all, args, sampleName), proj.checkV_Integrated, cont)
-        final_thresholding_Integrated = initialize_step(dosteps, "final_thresholding_Integrated", 
-                                                        set_ProjFinalThresholding, 
-                                                        (pd, args, "I-03", checkV_Integrated.merged_integrated_fna, missing, checkV_Integrated.postcheckV2_integrated_df_p, predictors_all, sampleName),
-                                                        proj.final_thresholding_Integrated, cont)
     else     
         println("No predictor for integrated viruses is activated. If that was not your intention, check your input parameters.")  
-        checkV_Integrated = missing
-        final_thresholding_Integrated = missing
     end
     #endregion
 
 
     #region Mixed viruses
     if length(nonintegrated_viruses_to_agregate) >= 1 && length(integrated_viruses_to_agregate_df) >= 1
-        detect_mixed_viruses = initialize_step(dosteps, "detect_mixed_viruses", set_ProjDetectMixedViruses, (pd, checkV_NonIntegrated.postcheckV_nonintegrated_df_p, checkV_Integrated.postcheckV2_integrated_df_p, sampleName), proj.detect_mixed_viruses, cont)
-        #=finalize_thresholding_Mixed = initialize_step(dosteps, "final_thresholding_Mixed", 
-                                                        set_ProjFinalThresholding, 
-                                                        (pd, args, "M-03", detect_mixed_viruses.outmixed_fna, detect_mixed_viruses.outmixed_df, predictors_all, sampleName, predictors_Int),
-                                                        proj.final_thresholding_Mixed, cont) =#
+        detect_mixed_viruses = initialize_step(dosteps, "detect_mixed_viruses", set_ProjDetectMixedViruses, (pd, checkV_NonIntegrated.postcheckV_nonintegrated_df_p, checkV_NonIntegrated.output_aggregated_fna,
+                                                                                    checkV_Integrated.postcheckV2_integrated_df_p, checkV_Integrated.merged_integrated_fna, 
+                                                                                    sampleName, predictors_all), proj.detect_mixed_viruses, cont)
     else
         detect_mixed_viruses = missing
-        #finalize_thresholding_Mixed = missing
     end
+    #endregion
 
+    #region nonintegrated viruses - PhaTYP and FinalThresholding steps
+    if length(nonintegrated_viruses_to_agregate) >= 1
+        phaTYP_NonIntegrated = initialize_step(dosteps, "phaTYP_nonintegrated", set_ProjPhaTYPNonintegrated, (pd, detect_mixed_viruses.outFna_nonint_p, detect_mixed_viruses.outDf_resolved_nonInt_p, args, sampleName, min_contig_length), proj.phaTYP_nonintegrated, cont)
+        genomadTax_NonInt = initialize_step(dosteps, "genomadTax_NonInt", set_ProjGenomadTax,
+                                                (pd, args, "06_N-03", detect_mixed_viruses.outFna_nonint_p, phaTYP_NonIntegrated.mergedPostCheckV_PhaTYP_p, getFileName(detect_mixed_viruses.outFna_nonint_p.p), sampleName), proj.genomadTax_NonInt, cont)  
+        final_thresholding_NonIntegrated = initialize_step(dosteps, "final_thresholding_NonIntegrated", 
+                                                            set_ProjFinalThresholding, 
+                                                            (pd, args, "07_N-04", detect_mixed_viruses.outFna_nonint_p, detect_mixed_viruses.outFna_nonint_DTR_trimmed_p,
+                                                            genomadTax_NonInt.postgenomadtax_df, predictors_all, sampleName), 
+                                                            proj.final_thresholding_NonIntegrated, cont)
+    else     
+        phaTYP_NonIntegrated = missing
+        final_thresholding_NonIntegrated = missing
+    end
+    #endregion
+
+    #region integrated viruses - PhaTYP and FinalThresholding steps
+    if length(integrated_viruses_to_agregate_df) >= 1 #&& length(integrated_viruses_to_agregate_fna) >= 1
+        genomadTax_Int = initialize_step(dosteps, "genomadTax_Int", set_ProjGenomadTax,
+                                            (pd, args,"08_I-02", detect_mixed_viruses.outFna_Int_p, detect_mixed_viruses.outDf_resolved_Int_p, getFileName(detect_mixed_viruses.outFna_Int_p.p), sampleName), proj.genomadTax_Int, cont)     
+        final_thresholding_Integrated = initialize_step(dosteps, "final_thresholding_Integrated", 
+                                                        set_ProjFinalThresholding, 
+                                                        (pd, args, "09_I-03", detect_mixed_viruses.outFna_Int_p, missing,  genomadTax_Int.postgenomadtax_df, predictors_all, sampleName),
+                                                        proj.final_thresholding_Integrated, cont)
+    else     
+        checkV_Integrated = missing
+        final_thresholding_Integrated = missing
+    end
     #endregion
 
     proj = nothing
@@ -916,11 +957,11 @@ function ProjSViP_fun(args::Vector{String})
                     checkV_NonIntegrated, 
                     checkV_Integrated, 
                     phaTYP_NonIntegrated, 
-                    #phaTYP_integrated, 
                     detect_mixed_viruses,
+                    genomadTax_NonInt,
+                    genomadTax_Int,
                     final_thresholding_NonIntegrated,
                     final_thresholding_Integrated,
-                    #finalize_thresholding_Mixed
                     )
     serialize("$(pd)/$(sampleName)/sproj.binary", sproj)
     printProjSViP("$(pd)/$(sampleName)/project_parameters_and_status.txt", sproj)
