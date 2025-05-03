@@ -705,35 +705,61 @@ function ProjSViP_fun(args::Vector{String})
 
             dosteps["checkV_NonIntegrated"].signal = "use"
             dosteps = setstep_intermediary!(proj, "checkV_NonIntegrated", dosteps, "$(pd)/$(proj.checkV_NonIntegrated.pd)",
-                                            ["$(pd)/$(proj.phaTYP_nonintegrated.pd)", "$(pd)/$(proj.final_thresholding_NonIntegrated.pd)", 
-                                            "$(pd)/$(proj.checkV_Integrated.pd)", "$(pd)/$(proj.final_thresholding_Integrated.pd)",
-                                            "$(pd)/$(proj.detect_mixed_viruses.pd)"]; #, "$(pd)/$(proj.final_thresholding_Mixed.pd)"
-                                            pds2remove_use = ["$(pd)/$(proj.final_thresholding_NonIntegrated.pd)", "$(pd)/$(proj.final_thresholding_Integrated.pd)"], logfun = printProjSViP) #, "$(pd)/$(proj.final_thresholding_Mixed.pd)"
+                                            ["$(pd)/$(proj.checkV_Integrated.pd)", "$(pd)/$(proj.detect_mixed_viruses.pd)", 
+                                            "$(pd)/$(proj.phaTYP_nonintegrated.pd)", 
+                                            "$(pd)/$(proj.genomadTax_NonInt.pd)", "$(pd)/$(proj.genomadTax_Int.pd)",
+                                            "$(pd)/$(proj.final_thresholding_NonIntegrated.pd)", "$(pd)/$(proj.final_thresholding_Integrated.pd)"]; 
+                                            pds2remove_use = ["$(pd)/$(proj.final_thresholding_NonIntegrated.pd)", "$(pd)/$(proj.final_thresholding_Integrated.pd)"], logfun = printProjSViP) 
 
-            dosteps["checkV_Integrated"].signal = "use"
+            if dosteps["checkV_NonIntegrated"].signal == "do"
+                dosteps["checkV_Integrated"].signal = "do"
+            else                           
+                dosteps["checkV_Integrated"].signal = "use"
+            end
             dosteps = setstep_intermediary!(proj, "checkV_Integrated", dosteps, "$(pd)/$(proj.checkV_Integrated.pd)",
-                                            ["$(pd)/$(proj.final_thresholding_Integrated.pd)", "$(pd)/$(proj.detect_mixed_viruses.pd)"];  #, "$(pd)/$(proj.final_thresholding_Mixed.pd)"
-                                            pds2remove_use = ["$(pd)/$(proj.final_thresholding_Integrated.pd)"], logfun = printProjSViP) #, "$(pd)/$(proj.final_thresholding_Mixed.pd)"
+                                            ["$(pd)/$(proj.detect_mixed_viruses.pd)", 
+                                            "$(pd)/$(proj.phaTYP_nonintegrated.pd)", 
+                                            "$(pd)/$(proj.genomadTax_NonInt.pd)", "$(pd)/$(proj.genomadTax_Int.pd)",
+                                            "$(pd)/$(proj.final_thresholding_NonIntegrated.pd)", "$(pd)/$(proj.final_thresholding_Integrated.pd)"];  
+                                            pds2remove_use = ["$(pd)/$(proj.final_thresholding_NonIntegrated.pd)", "$(pd)/$(proj.final_thresholding_Integrated.pd)"], logfun = printProjSViP) 
+           
+            if dosteps["checkV_Integrated"].signal == "do"
+                dosteps["detect_mixed_viruses"].signal = "do"
+            else
+                dosteps["detect_mixed_viruses"].signal = "use"
+            end
+            dosteps = setstep_intermediary!(proj, "detect_mixed_viruses", dosteps, "$(pd)/$(proj.detect_mixed_viruses.pd)",
+                                            ["$(pd)/$(proj.phaTYP_nonintegrated.pd)", 
+                                            "$(pd)/$(proj.genomadTax_NonInt.pd)", "$(pd)/$(proj.genomadTax_Int.pd)",
+                                            "$(pd)/$(proj.final_thresholding_NonIntegrated.pd)", "$(pd)/$(proj.final_thresholding_Integrated.pd)"]; 
+                                            pds2remove_use = ["$(pd)/$(proj.final_thresholding_NonIntegrated.pd)", "$(pd)/$(proj.final_thresholding_Integrated.pd)"], logfun = printProjSViP)         
 
-            dosteps["phaTYP_nonintegrated"].signal = "use"
+            if dosteps["detect_mixed_viruses"].signal == "do"
+                dosteps["phaTYP_nonintegrated"].signal = "do"
+            else
+                dosteps["phaTYP_nonintegrated"].signal = "use"
+            end
             dosteps = setstep_intermediary!(proj, "phaTYP_nonintegrated", dosteps, "$(pd)/$(proj.phaTYP_nonintegrated.pd)",
-                                            ["$(pd)/$(proj.final_thresholding_NonIntegrated.pd)"]; 
+                                            ["$(pd)/$(proj.genomadTax_NonInt.pd)", "$(pd)/$(proj.final_thresholding_NonIntegrated.pd)"]; 
                                             pds2remove_use = ["$(pd)/$(proj.final_thresholding_NonIntegrated.pd)"], logfun = printProjSViP)
             
-            dosteps["detect_mixed_viruses"].signal = "use"
-            dosteps = setstep_intermediary!(proj, "detect_mixed_viruses", dosteps, "$(pd)/$(proj.detect_mixed_viruses.pd)",
-                                            ["$(pd)/$(proj.detect_mixed_viruses.pd)"]; 
-                                            pds2remove_use = ["$(pd)/$(proj.detect_mixed_viruses.pd)"], logfun = printProjSViP)                   
-
-            dosteps["genomadTax_NonInt"].signal = "use"
+            if dosteps["phaTYP_nonintegrated"].signal == "do"
+                dosteps["genomadTax_NonInt"].signal = "do"
+            else                                
+                dosteps["genomadTax_NonInt"].signal = "use"
+            end
             dosteps = setstep_intermediary!(proj, "genomadTax_NonInt", dosteps, "$(pd)/$(proj.genomadTax_NonInt.pd)",
-                                            ["$(pd)/$(proj.genomadTax_NonInt.pd)"]; 
-                                            pds2remove_use = ["$(pd)/$(proj.genomadTax_NonInt.pd)"], logfun = printProjSViP)   
+                                            ["$(pd)/$(proj.final_thresholding_NonIntegrated.pd)"]; 
+                                            pds2remove_use = ["$(pd)/$(proj.final_thresholding_NonIntegrated.pd)"], logfun = printProjSViP)   
 
-            dosteps["genomadTax_Int"].signal = "use"
+            if dosteps["detect_mixed_viruses"].signal == "do"
+                dosteps["genomadTax_Int"].signal = "do"
+            else                                
+                dosteps["genomadTax_Int"].signal = "use"
+            end
             dosteps = setstep_intermediary!(proj, "genomadTax_Int", dosteps, "$(pd)/$(proj.genomadTax_Int.pd)",
-                                            ["$(pd)/$(proj.genomadTax_Int.pd)"]; 
-                                            pds2remove_use = ["$(pd)/$(proj.genomadTax_Int.pd)"], logfun = printProjSViP)   
+                                            ["$(pd)/$(proj.final_thresholding_Integrated.pd)"]; 
+                                            pds2remove_use = ["$(pd)/$(proj.final_thresholding_Integrated.pd)"], logfun = printProjSViP)   
         else 
             println("
             You have chosen to continue an already existing DoViP project by re-runing, removing or ignoring at least one of the 4 predictors in the INITIAL PREDICTION STEP.
@@ -750,9 +776,10 @@ function ProjSViP_fun(args::Vector{String})
             ")
 
             # if only one of the 4 predictors have must be redone or removed, then all post-prediction steps will be deleted and redone
-            todel = vcat("$(pd)/$(proj.checkV_NonIntegrated.pd)", "$(pd)/$(proj.phaTYP_nonintegrated.pd)", "$(pd)/$(proj.final_thresholding_NonIntegrated.pd)",
-                            "$(pd)/$(proj.checkV_Integrated.pd)", "$(pd)/$(proj.final_thresholding_Integrated.pd)",
-                            "$(pd)/$(proj.detect_mixed_viruses.pd)") #, "$(pd)/$(proj.final_thresholding_Mixed.pd)"
+            todel = vcat("$(pd)/$(proj.checkV_NonIntegrated.pd)", "$(pd)/$(proj.checkV_Integrated.pd)", "$(pd)/$(proj.detect_mixed_viruses.pd)", 
+                            "$(pd)/$(proj.phaTYP_nonintegrated.pd)", 
+                            "$(pd)/$(proj.genomadTax_NonInt.pd)", "$(pd)/$(proj.genomadTax_Int.pd)",
+                            "$(pd)/$(proj.final_thresholding_NonIntegrated.pd)", "$(pd)/$(proj.final_thresholding_Integrated.pd)") 
             
             if ismissing(proj.genomad) == false            
                 dosteps = setstep_primary!(proj, "genomad", dosteps, "$(pd)/$(proj.genomad.pd)", todel; logfun = printProjSViP)
@@ -787,35 +814,40 @@ function ProjSViP_fun(args::Vector{String})
            # I need to set the signal for the steps below to "do", becase they might be set to use form a previous run
             dosteps["checkV_NonIntegrated"].signal = "do"
             dosteps = setstep_intermediary!(proj, "checkV_NonIntegrated", dosteps, "$(pd)/$(proj.checkV_NonIntegrated.pd)",
-                                            ["$(pd)/$(proj.phaTYP_nonintegrated.pd)", "$(pd)/$(proj.final_thresholding_NonIntegrated.pd)", 
-                                            "$(pd)/$(proj.checkV_Integrated.pd)", "$(pd)/$(proj.final_thresholding_Integrated.pd)",
-                                            "$(pd)/$(proj.detect_mixed_viruses.pd)"]; logfun = printProjSViP)
+                                            ["$(pd)/$(proj.checkV_Integrated.pd)", "$(pd)/$(proj.detect_mixed_viruses.pd)", 
+                                            "$(pd)/$(proj.phaTYP_nonintegrated.pd)", 
+                                            "$(pd)/$(proj.genomadTax_NonInt.pd)", "$(pd)/$(proj.genomadTax_Int.pd)",
+                                            "$(pd)/$(proj.final_thresholding_NonIntegrated.pd)", "$(pd)/$(proj.final_thresholding_Integrated.pd)"]; logfun = printProjSViP)
             
             dosteps["checkV_Integrated"].signal = "do"
             dosteps = setstep_intermediary!(proj, "checkV_Integrated", dosteps, "$(pd)/$(proj.checkV_Integrated.pd)",
-                                            ["$(pd)/$(proj.final_thresholding_Integrated.pd)", "$(pd)/$(proj.detect_mixed_viruses.pd)"]; logfun = printProjSViP) 
+                                            ["$(pd)/$(proj.detect_mixed_viruses.pd)", 
+                                            "$(pd)/$(proj.phaTYP_nonintegrated.pd)", 
+                                            "$(pd)/$(proj.genomadTax_NonInt.pd)", "$(pd)/$(proj.genomadTax_Int.pd)",
+                                            "$(pd)/$(proj.final_thresholding_NonIntegrated.pd)", "$(pd)/$(proj.final_thresholding_Integrated.pd)"]; logfun = printProjSViP) 
             
-            dosteps["phaTYP_nonintegrated"].signal = "do"
-            dosteps = setstep_intermediary!(proj, "phaTYP_nonintegrated", dosteps, "$(pd)/$(proj.phaTYP_nonintegrated.pd)",
-                                            ["$(pd)/$(proj.final_thresholding_NonIntegrated.pd)"]; logfun = printProjSViP) 
-
             dosteps["detect_mixed_viruses"].signal = "do"
             dosteps = setstep_intermediary!(proj, "detect_mixed_viruses", dosteps, "$(pd)/$(proj.detect_mixed_viruses.pd)", 
-                                            ["$(pd)/$(proj.detect_mixed_viruses.pd)"]; logfun = printProjSViP) 
+                                            ["$(pd)/$(proj.phaTYP_nonintegrated.pd)", 
+                                            "$(pd)/$(proj.genomadTax_NonInt.pd)", "$(pd)/$(proj.genomadTax_Int.pd)",
+                                            "$(pd)/$(proj.final_thresholding_NonIntegrated.pd)", "$(pd)/$(proj.final_thresholding_Integrated.pd)"]; logfun = printProjSViP) 
+
+            dosteps["phaTYP_nonintegrated"].signal = "do"
+            dosteps = setstep_intermediary!(proj, "phaTYP_nonintegrated", dosteps, "$(pd)/$(proj.phaTYP_nonintegrated.pd)",
+                                            ["$(pd)/$(proj.genomadTax_NonInt.pd)", "$(pd)/$(proj.final_thresholding_NonIntegrated.pd)"]; logfun = printProjSViP) 
 
             dosteps["genomadTax_NonInt"].signal = "do"
             dosteps = setstep_intermediary!(proj, "genomadTax_NonInt", dosteps, "$(pd)/$(proj.genomadTax_NonInt.pd)", 
-                                            ["$(pd)/$(proj.genomadTax_NonInt.pd)"]; logfun = printProjSViP) 
+                                            ["$(pd)/$(proj.final_thresholding_NonIntegrated.pd)"]; logfun = printProjSViP) 
 
             dosteps["genomadTax_Int"].signal = "do"
             dosteps = setstep_intermediary!(proj, "genomadTax_Int", dosteps, "$(pd)/$(proj.genomadTax_Int.pd)", 
-                                            ["$(pd)/$(proj.genomadTax_Int.pd)"]; logfun = printProjSViP) 
+                                            ["$(pd)/$(proj.final_thresholding_Integrated.pd)"]; logfun = printProjSViP) 
         end
 
         # these final steps allways have their signal set to do, because they will be recalculated at every project run
         dosteps = setstep_final!(proj, "final_thresholding_NonIntegrated", dosteps, "$(pd)/$(proj.final_thresholding_NonIntegrated.pd)"; logfun = printProjSViP)
         dosteps = setstep_final!(proj, "final_thresholding_Integrated", dosteps, "$(pd)/$(proj.final_thresholding_Integrated.pd)"; logfun = printProjSViP)
-        #dosteps = setstep_final!(proj, "final_thresholding_Mixed", dosteps, "$(pd)/$(proj.final_thresholding_Mixed.pd)")
 
         touse = nothing
         toignore = nothing

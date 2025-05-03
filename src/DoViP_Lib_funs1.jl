@@ -701,27 +701,27 @@ function bring_circ_provirus_names!(dfj::DataFrame, consensus_df::DataFrame)
     return dfj
 end
 
-# dfj =  bring_circ_provirus_names!(dfj, consensus_df)
+#dfj =  bring_circ_provirus_names!(dfj, consensus_df)
 
-function initialize_predcov_dict(consensus_df)
+function initialize_predcov_dict(consensus_df, name_col::Symbol, start_col::Symbol, end_col::Symbol, length_col::Symbol)
 
     cov_dict = Dict{String, CovStruct}()
 
     for i in 1:nrow(consensus_df)
-        key = consensus_df[i, :provirus_name]
+        key = consensus_df[i, name_col]
 
         # left end
-        lDF_length = consensus_df[i, :provirus_end] - consensus_df[i, :provirus_start] + 1
+        lDF_length = consensus_df[i, end_col] - consensus_df[i, start_col] + 1
         lDF = DataFrame(coordinates = fill(0, lDF_length), 
                         pred_cov = fill(0, lDF_length))
 
-        lcoords_v = consensus_df[i, :provirus_start]:consensus_df[i, :provirus_end]             
+        lcoords_v = consensus_df[i, start_col]:consensus_df[i, end_col]             
         for j in 1:nrow(lDF)
             lDF[j, :coordinates] = lcoords_v[j]
         end
 
         # right end
-        if !ismissing(consensus_df[i, :r_provirus_start]) && !ismissing(consensus_df[i, :r_provirus_end])
+        if "r_provirus_start" in names(consensus_df) && !ismissing(consensus_df[i, :r_provirus_start]) && !ismissing(consensus_df[i, :r_provirus_end])
             rDF_length = consensus_df[i, :r_provirus_end] - consensus_df[i, :r_provirus_start] + 1
             rDF = DataFrame(coordinates = fill(0, rDF_length), 
                             pred_cov = fill(0, rDF_length))
@@ -733,22 +733,39 @@ function initialize_predcov_dict(consensus_df)
             rDF = missing
         end
 
-        cov_dict[key] = CovStruct(lDF, rDF, consensus_df[i, :length], 0.0, 0.0)
+        cov_dict[key] = CovStruct(lDF, rDF, consensus_df[i, length_col], 0.0, 0.0)
     end
 
     return cov_dict
 end
 
-function calculate_predcov!(dfj::DataFrame, consensus_df::DataFrame, predictors::Vector{Symbol})
+#= calculate predictor coverage for the unMixed contigs
+predictors = [:predictor_genomad, :predictor_virSorter2, :predictor_vibrant, :predictor_dvf, :predictor_viralVerify]
+int_df_p = "/mnt/cephfs1/projects/DoViP_benchmarking/NCBI_dataset/outputs_relaxed_DVF_th/ALL_45_genomes_v1/04_M_Detection/04_M_00_Mixed_Int_Viruses.tsv"
+int_df = CSV.read(int_df_p, DataFrame; delim = '\t', header = 1)
+nonint_df_p = "/mnt/cephfs1/projects/DoViP_benchmarking/NCBI_dataset/outputs_relaxed_DVF_th/ALL_45_genomes_v1/04_M_Detection/04_M_00_Mixed_NonInt_Viruses.tsv"
+nonint_df = CSV.read(nonint_df_p, DataFrame; delim = '\t', header = 1)
+
+consensus_df_p = "/mnt/cephfs1/projects/DoViP_benchmarking/NCBI_dataset/outputs_relaxed_DVF_th/ALL_45_genomes_v1/04_M_Detection/04_M_01_resolved_NonInt_Viruses.tsv"
+consensus_df = CSV.read(consensus_df_p, DataFrame; delim = '\t', header = 1)
+
+dfj = prep_joint_mixed_df(int_df, nonint_df, predictors)
+
+name_col = :contig_name
+start_col = :virus_start
+end_col = :virus_end
+length_col = :virus_length =#
+
+function calculate_predcov!(dfj::DataFrame, consensus_df::DataFrame, predictors::Vector{Symbol}, name_col::Symbol, start_col::Symbol, init_start_col::Symbol, end_col::Symbol, init_end_col::Symbol, init_length_col::Symbol)
     # initialize initialize_predcov_dict
-    predcov_dict = initialize_predcov_dict(consensus_df)
+    predcov_dict = initialize_predcov_dict(consensus_df, name_col, init_start_col, init_end_col, init_length_col)
 
     # use dfj to calculate the "initial predictor" coverage for each merged pro-virus
-    gdfj = groupby(dfj, :provirus_name)
+    gdfj = groupby(dfj, name_col)
 
     for i in 1:length(gdfj)
 
-        key = gdfj[i][1, :provirus_name]
+        key = gdfj[i][1, name_col]
 
         if nrow(gdfj[i]) == 1
             predcov_dict[key].final_averagecov = 1.0
@@ -768,7 +785,7 @@ function calculate_predcov!(dfj::DataFrame, consensus_df::DataFrame, predictors:
                     end
 
                     # left arm
-                    for j in gdfj[i][a, :provir_start_cor]:gdfj[i][a, :provir_end_cor]
+                    for j in gdfj[i][a, start_col]:gdfj[i][a, end_col]
                         row = j - shift + 1
                         predcov_dict[key].lDF[row, :pred_cov] += pc                                           # add the number of predictors for one proviral fragment
                     end
@@ -793,7 +810,7 @@ function calculate_predcov!(dfj::DataFrame, consensus_df::DataFrame, predictors:
                     else
                         # left arm
                         shift =  predcov_dict[key].lDF[1, :coordinates] 
-                        for j in gdfj[i][a, :provir_start_cor]:gdfj[i][a, :provir_end_cor]
+                        for j in gdfj[i][a, start_col]:gdfj[i][a, end_col]
                             row = j - shift + 1
                             predcov_dict[key].lDF[row, :pred_cov] += pc
                         end
@@ -821,15 +838,33 @@ function calculate_predcov!(dfj::DataFrame, consensus_df::DataFrame, predictors:
     consensus_df[!, :predictor_stddev_coverage] = fill(0.0, nrow(consensus_df))
 
     for i in 1:nrow(consensus_df)
-        key = consensus_df[i, :provirus_name]
+        key = consensus_df[i, name_col]
         consensus_df[i, :predictor_average_coverage] = predcov_dict[key].final_averagecov
         consensus_df[i, :predictor_stddev_coverage] = predcov_dict[key].final_standad_deviation_cov
+    end
+
+    if name_col == :contig_name
+        for i in 1:nrow(consensus_df)
+            if consensus_df[i, :mixed] == ""
+                pc = 0
+
+                for p in predictors
+                    if (string(p) in names(consensus_df)) && (ismissing(consensus_df[i,p]) == false) && (consensus_df[i, p] == "yes")
+                        pc += 1
+                    end
+                end
+
+                consensus_df[i, :predictor_average_coverage] = pc 
+                consensus_df[i, :predictor_stddev_coverage] = 0
+            end
+        end
     end
 
     return consensus_df
 end
 
-# consensus_df = calculate_predcov!(dfj, consensus_df)
+#consensus_df = calculate_predcov!(dfj, consensus_df, predictors, :contig_name, :virus_start, :virus_start, :virus_end, :virus_end, :virus_length)
+#consensus_df = calculate_predcov!(dfj, consensus_df, predictors, :provirus_name, :provir_start_cor, :provirus_start, :provir_end_cor, :provirus_end, :length)
 
 
 function merge_integrated!(inref::FnaP, checkV::ProjCheckVIntegrated, dfj::DataFrame, parentD::String) # I need to chck if the ouput files exist and if they are empty
@@ -867,7 +902,7 @@ function merge_integrated!(inref::FnaP, checkV::ProjCheckVIntegrated, dfj::DataF
     CSV.write("$(parentD)/$(checkV.postcheckv1_integrated_cor_withmergedprovirIDs_df.p)", dfj, delim = '\t', header = true)
 
     # calculate predictor coverage
-    consensus_df = calculate_predcov!(dfj, consensus_df, checkV.predictors)
+    consensus_df = calculate_predcov!(dfj, consensus_df, checkV.predictors, :provirus_name, :provir_start_cor, :provirus_start, :provir_end_cor, :provirus_end, :length)
 
     # save df with merged proviruses
     CSV.write("$(parentD)/$(checkV.merged_integrated_DF.p)", consensus_df, delim = '\t', header = true)
@@ -1083,7 +1118,7 @@ function transfer_predictors(nonintMixed_tsv::DataFrame, intMixed_tsv::DataFrame
         end
         nonintMixed_df[i, :orig_NonInt_predictors] = find_consensus(orig_pred_v)
 
-        # transfer perdictors from int_df
+        # transfer predictors from int_df
         for j in 1:nrow(intMixed_tsv)
             if intMixed_tsv[j, :contig_name] == nonintMixed_df[i, :contig_name]
                 nonintMixed_df[i, :mixed] = "yes"
@@ -1123,6 +1158,26 @@ function export_nonint_fna(df::DataFrame, infna::FnaP, fullfna_p::FnaP, trimfna_
     return nothing
 end
 
+function prep_joint_mixed_df(int_df::DataFrame, nonint_df::DataFrame, predictors::Vector{Symbol})
+
+    cols_nonint = vcat([:contig_name, :virus_name, :virus_start, :virus_end], predictors)
+    mixedNonInt_df_sel = select(nonint_df, cols_nonint)
+
+    cols_int = vcat([:contig_name, :provirus_name, :provirus_start, :provirus_end], predictors)
+    mixedInt_df_sel = select(int_df, cols_int)
+    rename!(mixedInt_df_sel, :provirus_name => :virus_name, :provirus_start => :virus_start, :provirus_end => :virus_end)
+
+    mixed_jdf = vcat(mixedNonInt_df_sel, mixedInt_df_sel, cols = :setequal)
+    
+    return mixed_jdf
+end
+
+#=
+projb_p = "/mnt/cephfs1/projects/DoViP_benchmarking/NCBI_dataset/outputs_relaxed_DVF_th_predcov_mixed/ALL_45_genomes_v1/sproj.binary"
+projb = deserialize(projb_p)
+parentD = "/mnt/cephfs1/projects/DoViP_benchmarking/NCBI_dataset/outputs_relaxed_DVF_th_predcov_mixed"
+proj = projb.detect_mixed_viruses =#
+
 function detect_mixed_virs(proj::ProjDetectMixedViruses, parentD::String)
     indf_int_o = nothing
     indf_nonint_o = nothing
@@ -1159,9 +1214,13 @@ function detect_mixed_virs(proj::ProjDetectMixedViruses, parentD::String)
                 end
             end
             CSV.write("$(parentD)/$(proj.outDf_mixed_nonInt_p.p)", mixedNonInt_df, delim = '\t', header = true)
-
+          
             # transfer predictor info from the INTEGRATED to the NONINTEGRATED mixed virus contigs
             outNonIntDf = transfer_predictors(indf_nonint_o, mixedInt_df, proj.predictors)
+            # calculate coverage of mixed viruses and non-integrated viruses
+            mixed_jdf = prep_joint_mixed_df(mixedInt_df, mixedNonInt_df, proj.predictors)
+            outNonIntDf = calculate_predcov!(mixed_jdf, outNonIntDf, proj.predictors, :contig_name, :virus_start, :virus_start, :virus_end, :virus_end, :virus_length)
+
             CSV.write("$(parentD)/$(proj.outDf_resolved_nonInt_p.p)", outNonIntDf, delim = '\t', header = true)
 
 
@@ -1229,22 +1288,24 @@ function apply_thresholds!(proj::FinalThresholding, name_col::Symbol, parentD::S
         println("\nInital predictors for this branch are $(proj.predictors)")
 
         for i in nrow(tdf):-1:1
+            # calculate the number of predictors for storage in DF
             pc = 0
-
             for p in proj.predictors
                 if (string(p) in names(tdf)) && (ismissing(tdf[i,p]) == false) && (tdf[i, p] == "yes")
                     pc += 1
                 end
             end
-
-            tdf[i, :predictors_total] = pc
-
+            tdf[i, :predictors_total] = pc 
+            
+            #=
             if name_col == :provirus_name
                 th = tdf[i, :predictor_average_coverage]
             elseif name_col == :virus_name
                 th = pc 
-            end
-             
+            end =#
+            
+            th = tdf[i, :predictor_average_coverage]
+
             if tdf[i, :completeness_checkV] == "NA" && th < proj.th_num_predictors_CheckV_NA
                 deleteat!(tdf, i)
             elseif tdf[i, :completeness_checkV] != "NA"
@@ -1256,7 +1317,7 @@ function apply_thresholds!(proj::FinalThresholding, name_col::Symbol, parentD::S
     
                 host_genes = ((tdf[i, :host_genes_checkV] * 100) / tdf[i, :gene_count_checkV])
     
-                if th == 1 && host_genes >= 60
+                if th <= 1.1  && host_genes >= 70
                     deleteat!(tdf, i)
                 elseif occursin("AAI-based (high-confidence)", tdf[i, :completeness_method_checkV])
                     if (completeness < 90) && (th < proj.th_num_predictors_CheckV_AAIHighConf || completeness <= proj.th_completeness_CheckV_AAIHighConf)
@@ -1282,7 +1343,7 @@ function apply_thresholds!(proj::FinalThresholding, name_col::Symbol, parentD::S
                             end
                         end
                 else
-                    if th < 3
+                    if th < 2.5
                         deleteat!(tdf, i)
                     end   
                 end

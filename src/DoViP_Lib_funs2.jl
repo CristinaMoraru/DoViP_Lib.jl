@@ -608,7 +608,7 @@ function order_NonIntDf!(df::DataFrame, sample_name::String, sample_set::String)
         append!(column_order, [:score_viralVerify, :shape_viralVerify])
     end
 
-    append!(column_order, [:predictors_total, :completeness_checkV, :completeness_method_checkV, :contamination_checkV, :kmer_freq_checkV, :warnings_checkV, :gene_count_checkV, :viral_genes_checkV, :host_genes_checkV, :checkv_quality_checkV, :miuvig_quality_checkV])
+    append!(column_order, [:predictors_total, :predictor_average_coverage, :predictor_stddev_coverage, :completeness_checkV, :completeness_method_checkV, :contamination_checkV, :kmer_freq_checkV, :warnings_checkV, :gene_count_checkV, :viral_genes_checkV, :host_genes_checkV, :checkv_quality_checkV, :miuvig_quality_checkV])
                             
     if "predictor_genomad" in column_names
         push!(column_order, :genomadTax_taxid, :genomadTax_lineage)

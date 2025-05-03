@@ -19,7 +19,7 @@ include("DoViP_Lib_00_DT_MainProjConstructor.jl")
 include("DoViP_Lib_000_Run.jl")
 include("DoViP_Lib_funs1.jl")
 
-#end # module DoViP_Lib
+end # module DoViP_Lib
 
 
 #=
@@ -30,10 +30,10 @@ args = [
     "allrefs_params=/mnt/ASBRU/Projects/RESIST_phaseI_viruses/TEMP-TRANSFER/debug_dovipv09/CLM_Julia_EMC_DoViPv0.9_b1-2.tsv",
     "continue=true",
 ] =#
-#
+#=
 args = [
     "inref=/mnt/cephfs1/projects/DoViP_benchmarking/NCBI_dataset/inputs/ALL_45_genomes_v1.fasta", #/mnt/cephfs1/projects/DoViP_benchmarking/test_dataset/Bacteria-2_with_MORE_inserted_viruses.fasta",#/mnt/cephfs1/projects/DoViP_benchmarking/test_dataset/ALL_43_genomes_v1.fasta", #/mnt/cephfs1/projects/DoViP_benchmarking/test_dataset/all_NCBI_dataset_viruses.fasta",
-    "pd_prefix=/mnt/cephfs1/projects/DoViP_benchmarking/NCBI_dataset/outputs",
+    "pd_prefix=/mnt/cephfs1/projects/DoViP_benchmarking/NCBI_dataset/outputs_stringent_DVF_th_predcov_mixed",
     "projtype=singleworkflow",
     "sample_set=DoViP_test_Isol_dataset",
     "use_slurm=false",
@@ -45,7 +45,7 @@ args = [
     
     # genomad related parameters
     "genomad_signal=do",
-    "genomad_res=/mnt/cephfs1/projects/DoViP_benchmarking/test_dataset/ALL_43_genomes_v1_OLD/01a_ALL_genomad/01a_ALL_01_genomad_out", 
+    "genomad_res=/mnt/cephfs1/projects/DoViP_benchmarking/NCBI_dataset/outputs/ALL_45_genomes_v1/01a_ALL_genomad/01a_ALL_01_genomad_out", 
     "genomad_env=conda_genomad",
     "genomadDB_p=/mnt/XIO_3/data1/genomad_db/genomad_db/",
     "genomad_min_score=0.7",
@@ -55,11 +55,11 @@ args = [
     
     # DVF related parameters
     "DVF_signal=do",
-    "dvf_res=/mnt/cephfs1/projects/DoViP_benchmarking/test_dataset/ALL_43_genomes_v1_newDFV/01b_ALL_DVF/01b_ALL_01_DVF_out",
+    "dvf_res=/mnt/cephfs1/projects/DoViP_benchmarking/NCBI_dataset/outputs_relaxed_DVF_th/ALL_45_genomes_v1/01b_ALL_DVF/01b_ALL_01_DVF_out",
     "DVF_env=conda_DVF",
     "DVF_maxContigLen=2099000",
     "DVF_scoreTh=0.7",
-    "DVF_pThreshold=0.01",
+    "DVF_pThreshold=0.005",
     "DVF_p=/home/conda/software/DeepVirFinder/dvf.py",
     "DVF_sbatch_time=2-0",
     "DVF_cpus_per_task=15",
@@ -67,7 +67,7 @@ args = [
     
     # virSorter2 related parameters
     "virSorter2_signal=do",
-    "virSorter2_res=/mnt/cephfs1/projects/DoViP_benchmarking/test_dataset/ALL_43_genomes_v1_OLD/01c_ALL_virSorter2/01c_ALL_01_virSorter2_out", 
+    "virSorter2_res=/mnt/cephfs1/projects/DoViP_benchmarking/NCBI_dataset/outputs/ALL_45_genomes_v1/01c_ALL_virSorter2/01c_ALL_01_virSorter2_out", 
     "virSorter2_env=conda_virsorter2",
     "virSorter2DB_p=/mnt/XIO_3/data1/virsorter-data/virsorter2/db/", 
     "virSorter2_high_confidence_only=false",
@@ -78,7 +78,7 @@ args = [
     
     # VIBRANT related parameters
     "vibrant_signal=do",
-    "vibrant_res=/mnt/cephfs1/projects/DoViP_benchmarking/test_dataset/ALL_43_genomes_v1_OLD/01d_ALL_vibrant/01d_ALL_01_vibrant_out", 
+    "vibrant_res=/mnt/cephfs1/projects/DoViP_benchmarking/NCBI_dataset/outputs/ALL_45_genomes_v1/01d_ALL_vibrant/01d_ALL_01_vibrant_out", 
     "vibrant_env=conda_VIBRANT",
     "vibrant_p=/home/conda/software/VIBRANT/VIBRANT_run.py",
     "vibrantDB_p=/home/conda/software/VIBRANT/databases/",
@@ -88,7 +88,7 @@ args = [
     
     # viralVerify related parameters
     "viralVerify_signal=do",
-    "viralVerify_res=/mnt/cephfs1/projects/DoViP_benchmarking/test_dataset/ALL_43_genomes_v1_OLD/01e_ALL_viralVerify/01e_ALL_01_viralVerify_out", 
+    "viralVerify_res=/mnt/cephfs1/projects/DoViP_benchmarking/NCBI_dataset/outputs/ALL_45_genomes_v1/01e_ALL_viralVerify/01e_ALL_01_viralVerify_out", 
     "viralVerify_env=conda_viralVerify",
     "viralVerifyDB_p=/software/conda/conda_viralVerify/DB/viralverifyDB_nbc_hmms.hmm",
     "viralVerify_p=/software/conda/conda_viralVerify/viralVerify/bin/viralverify",
@@ -157,5 +157,5 @@ end
 
 println("DoVip is done!")
 #endregion 
-#
-end
+=#
+#end
