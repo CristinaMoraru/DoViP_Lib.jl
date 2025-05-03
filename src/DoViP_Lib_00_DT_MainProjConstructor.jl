@@ -1,5 +1,6 @@
 export ProjSViP_fun
 
+
 function set_contig_length(inref::FnaP, pd::String, sampleName::String, min_contig_length::Int64) 
     sp = "00_All"
     dir = "$(sampleName)/$(sp)_min_length_$(min_contig_length)"
