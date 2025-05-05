@@ -1187,7 +1187,6 @@ function detect_mixed_virs(proj::ProjDetectMixedViruses, parentD::String)
 
 
     if isfile("$(parentD)/$(proj.inDf_Int.p)")
-        println("file 05_int is")
         indf_int_o = CSV.read("$(parentD)/$(proj.inDf_Int.p)", DataFrame; delim = '\t', header=1)
         mixedInt_df = deepcopy(indf_int_o)
     end
@@ -1244,6 +1243,21 @@ function detect_mixed_virs(proj::ProjDetectMixedViruses, parentD::String)
         export_nonint_fna(outNonIntDf, proj.inFna_NonInt, proj.outFna_nonint_p, proj.outFna_nonint_DTR_trimmed_p, parentD)
     else
         if !isnothing(indf_nonint_o)
+            # add initial predictor coverage
+            indf_nonint_o[!, :predictor_average_coverage] = fill(0, nrow(indf_nonint_o)) 
+            indf_nonint_o[!, :predictor_stddev_coverage] = fill(0, nrow(indf_nonint_o)) 
+
+            for i in 1:nrow(indf_nonint_o)
+                pc = 0
+                for p in proj.predictors
+                    if (string(p) in names(indf_nonint_o)) && (ismissing(indf_nonint_o[i,p]) == false) && (indf_nonint_o[i, p] == "yes")
+                        pc += 1
+                    end
+                end
+                indf_nonint_o[i, :predictor_average_coverage] = pc 
+            end
+            
+            # save .tsv
             CSV.write("$(parentD)/$(proj.outDf_resolved_nonInt_p.p)", indf_nonint_o, delim = '\t', header = true)
             export_nonint_fna(indf_nonint_o, proj.inFna_NonInt, proj.outFna_nonint_p, proj.outFna_nonint_DTR_trimmed_p, parentD)
         end

@@ -463,7 +463,7 @@ STATUS REPORT of individual steps
     checkV_Integrated:                   signal is $(proj.dosteps["checkV_Integrated"].signal), progress is $(proj.dosteps["checkV_Integrated"].progress)
 
     unMIXING VIRUSES
-    unimix viruses:                      signal is $(proj.dosteps["detect_mixed_viruses"].signal), progress is $(proj.dosteps["detect_mixed_viruses"].progress)
+    unMix viruses:                      signal is $(proj.dosteps["detect_mixed_viruses"].signal), progress is $(proj.dosteps["detect_mixed_viruses"].progress)
 
     NON-INTEGRATED VIRUSES BRANCH
     PhaTYP_nonintegrated:                signal is $(proj.dosteps["phaTYP_nonintegrated"].signal), progress is $(proj.dosteps["phaTYP_nonintegrated"].progress)
@@ -471,7 +471,7 @@ STATUS REPORT of individual steps
     Final_thresholding_NonIntegrated:    signal is $(proj.dosteps["final_thresholding_NonIntegrated"].signal), progress is $(proj.dosteps["final_thresholding_NonIntegrated"].progress)
         
     INTEGRATED VIRUSES BRANCH
-    geNomad Taxonomy nonintegrated::     signal is $(proj.dosteps["genomadTax_Int"].signal), progress is $(proj.dosteps["genomadTax_Int"].progress)
+    geNomad Taxonomy integrated::     signal is $(proj.dosteps["genomadTax_Int"].signal), progress is $(proj.dosteps["genomadTax_Int"].progress)
     Final_thresholding_Integrated:       signal is $(proj.dosteps["final_thresholding_Integrated"].signal), progress is $(proj.dosteps["final_thresholding_Integrated"].progress)
         
  

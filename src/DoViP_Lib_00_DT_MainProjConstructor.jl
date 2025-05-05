@@ -505,15 +505,15 @@ function set_ProjFinalThresholding(pd::String, args::Vector{String}, sp::String,
         th_num_predictors_CheckV_DTR_ITR_HMM = extract_args(args, "NONInt_th_num_predictors_CheckV_DTR_ITR_HMM", Float64, 1.0, 1.0, 5.0)
 
     elseif sp == "09_I-03"
-        th_num_predictors_CheckV_NA = extract_args(args, "Int_th_num_predictors_CheckV_NA", Float64, 3.0, 1.0, 5.0)
+        th_num_predictors_CheckV_NA = extract_args(args, "Int_th_num_predictors_CheckV_NA", Float64, 2.5, 1.0, 5.0)
 
         th_num_predictors_CheckV_AAIHighConf = extract_args(args, "Int_th_num_predictors_CheckV_AAIHighConf", Float64, 1.0, 1.0, 5.0)
         th_completeness_CheckV_AAIHighConf = extract_args(args, "Int_th_completeness_CheckV_AAIHighConf", Float64, 30.0, 1.0, 100.0)
 
-        th_num_predictors_CheckV_AAIMediumConf = extract_args(args, "Int_th_num_predictors_CheckV_AAIMediumConf", Float64, 2.0, 1.0, 5.0)
+        th_num_predictors_CheckV_AAIMediumConf = extract_args(args, "Int_th_num_predictors_CheckV_AAIMediumConf", Float64, 1.5, 1.0, 5.0)
         th_completeness_CheckV_AAIMediumConf = extract_args(args, "Int_th_completeness_CheckV_AAIMediumConf", Float64, 10.0, 1.0, 100.0)
 
-        th_num_predictors_CheckV_HMM = extract_args(args, "Int_th_num_predictors_CheckV_HMM", Float64, 2.0, 1.0, 5.0)
+        th_num_predictors_CheckV_HMM = extract_args(args, "Int_th_num_predictors_CheckV_HMM", Float64, 1.5, 1.0, 5.0)
         th_completeness_CheckV_HMM = extract_args(args, "Int_th_completeness_CheckV_HMM", Float64, 10.0, 1.0, 100.0)
 
         th_num_predictors_CheckV_DTR_ITR_AAI = missing
