@@ -543,7 +543,7 @@ end
 
 function ProjSViP_fun(args::Vector{String})
     #user
-    user = extract_args(args, "user", "user"; "user")
+    user = extract_args(args, "user", "user"; "")
 
     # continue or not
     cont = extract_args(args, "continue", Bool, "false")
