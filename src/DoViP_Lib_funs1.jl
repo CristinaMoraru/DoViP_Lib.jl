@@ -407,6 +407,11 @@ function find_consensus(vc::AbstractVector)
     end
 end
 
+#= dfj_p = "/home/cmoraru/MY_SPACE/BioinfSuite_4_GitHUB/DoViP_Lib.jl/tests_DoViP_proj/er_merge.tsv"
+dfjo = CSV.read(dfj_p, DataFrame; delim = '\t', header =1)
+dfj = deepcopy(dfjo)
+predictors = [:predictor_genomad, :predictor_virSorter2, :predictor_vibrant, :predictor_dvf, :predictor_viralVerify] 
+df = deepcopy(dfj) =#
 function group_proviruses!(df::DataFrame, predictors::Vector{Symbol}, merge_circ_proph::Bool)
     # df = deepcopy(dfj)
 
@@ -540,11 +545,11 @@ function group_proviruses!(df::DataFrame, predictors::Vector{Symbol}, merge_circ
         for gn in gnewdf     
             shape = find_consensus(gn[!, :contig_shape]) 
 
-            # I will merge only pro-viruses found at the end of circular contigs and overlapp 
+            # I will merge only pro-viruses found at the end of circular contigs and that overlapp 
             if (!ismissing(shape) && shape == "circular") #&& !ismissing(split_vs)
                 sort!(gn, :provirus_start)
                 lastrow = nrow(gn)
-                if gn[lastrow, :splitprovir] == gn[1, :splitprovir]
+                if !ismissing(gn[lastrow, :splitprovir]) && !ismissing(gn[1, :splitprovir]) && gn[lastrow, :splitprovir] == gn[1, :splitprovir]
                     if (gn[lastrow, :contig_trimmed_end] - gn[lastrow, :provirus_end]) <= 1 
                         spaceL = gn[lastrow, :contig_trimmed_end] - gn[lastrow, :provirus_end]                       
                         if gn[1, :provirus_start] <= 1
