@@ -24,11 +24,11 @@ version = "0.1.5"
 
 [[deps.BioS_ExtTools]]
 deps = ["BioS_Gen", "BioS_ProjsWFs", "BioS_SeqFuns", "CSV", "DataFrames", "Statistics"]
-git-tree-sha1 = "38498fd6d6b79678a580d3083fa9c69c4c7427a4"
-repo-rev = "v0.4.6"
+git-tree-sha1 = "d89f36c6352f284af068f7fcd34a377a7a0be4dd"
+repo-rev = "v0.4.7"
 repo-url = "https://github.com/CristinaMoraru/BioS_ExtTools.jl"
 uuid = "2ab26461-0724-42ce-b75e-a46d47467e92"
-version = "0.4.6"
+version = "0.4.7"
 
 [[deps.BioS_Gen]]
 deps = ["DataFrames", "StringAlgorithms"]

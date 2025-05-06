@@ -46,8 +46,8 @@ args = [
     # genomad related parameters
     "genomad_signal=do",
     "genomad_res=/mnt/cephfs1/projects/DoViP_benchmarking/NCBI_dataset/outputs_stringent_DVF_th_predcov_mixed/ALL_45_genomes_v1/01a_ALL_genomad/01a_ALL_01_genomad_out", 
-    "genomad_env=conda_genomad",
-    "genomadDB_p=/mnt/XIO_3/data1/genomad_db/genomad_db/",
+    "genomad_env=conda_genomad_v1.11",
+    "genomadDB_p=/software/conda/databases/genomad_v1.11/genomad_db",
     "genomad_min_score=0.7",
     "genomad_sbatch_time=2-0",
     "genomad_cpus_per_task=25",
