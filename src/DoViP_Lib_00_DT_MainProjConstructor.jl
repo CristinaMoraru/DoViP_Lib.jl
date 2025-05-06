@@ -475,7 +475,7 @@ function set_ProjGenomadTax(pd::String, args::Vector{String}, sp::String, inFna:
     genomadtax_out_table_p = "$out_genomadtax_D/$(genomad_prefix)_annotate/$(genomad_prefix)_taxonomy.tsv" |> TableP
     postgenomadtax_df = "$genomadtax_D/$(sp)_02_postgenomadtax_df.tsv" |> TableP
     
-    genomadtax = WrapCmd(; cmd = RunGenomadCmd("annotate", inFna, out_genomadtax_D, genomadDB_p, nothing, genomad_cpus_per_task, "--conservative-taxonomy"), 
+    genomadtax = WrapCmd(; cmd = RunGenomadCmd("annotate", inFna, out_genomadtax_D, genomadDB_p, nothing, genomad_cpus_per_task, "--lenient-taxonomy --full-ictv-lineage"), 
                             log_p = "$(genomadTaxLogs_predict_D)/genomad.log", err_p = "$(genomadTaxLogs_predict_D)/genomad.err", 
                             exit_p = "$(genomadTaxLogs_predict_D)/genomad.exit", env = genomad_env,
                             sbatch_maxtime = genomad_sbatch_time, sbatch_cpuspertask = genomad_cpus_per_task, sbatch_mem = genomad_sbatch_mem)
@@ -543,7 +543,7 @@ end
 
 function ProjSViP_fun(args::Vector{String})
     #user
-    user = extract_args(args, "user")
+    user = extract_args(args, "user", "user")
 
     # continue or not
     cont = extract_args(args, "continue", Bool, "false")
