@@ -1,7 +1,7 @@
 name = "DoViP_Lib"
 uuid = "22db7568-0fef-4816-86c4-f780d51317b9"
 authors = ["Cristina Moraru <lilianacristina.moraru@uni-due.de>"]
-version = "1.0.7"
+version = "1.1.0"
 
 [deps]
 BioS_ExtTools = "2ab26461-0724-42ce-b75e-a46d47467e92"
