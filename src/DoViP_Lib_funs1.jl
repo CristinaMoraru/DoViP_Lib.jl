@@ -760,6 +760,14 @@ name_col = :contig_name
 start_col = :virus_start
 end_col = :virus_end
 length_col = :virus_length =#
+#=calculate_predcov!(dfj, consensus_df, checkV.predictors, :provirus_name, :provir_start_cor, :provirus_start, :provir_end_cor, :provirus_end, :length)
+name_col = :provirus_name
+start_col = :provir_start_cor
+init_start_col = :provirus_start
+end_col = :provir_end_cor
+init_end_col = :provirus_end
+init_length_col = :length =#
+# problem contig: P_2_5_SV21_Ref5_C04_MG_P_2_5_SE_S10_469_length_54214_cov_13
 
 function calculate_predcov!(dfj::DataFrame, consensus_df::DataFrame, predictors::Vector{Symbol}, name_col::Symbol, start_col::Symbol, init_start_col::Symbol, end_col::Symbol, init_end_col::Symbol, init_length_col::Symbol)
     # initialize initialize_predcov_dict
@@ -769,6 +777,7 @@ function calculate_predcov!(dfj::DataFrame, consensus_df::DataFrame, predictors:
     gdfj = groupby(dfj, name_col)
 
     for i in 1:length(gdfj)
+        #println("I is $i")
 
         key = gdfj[i][1, name_col]
 
@@ -797,7 +806,7 @@ function calculate_predcov!(dfj::DataFrame, consensus_df::DataFrame, predictors:
                 end 
             else                                # for wrapped prophages
                 for a in 1:nrow(gdfj[i])
-
+                    #println("A is $a")
                     pc = 0
                     for p in predictors 
                         if string(p) in names(gdfj[i]) && !ismissing(gdfj[i][a, p]) && gdfj[i][a, p] == "yes"
@@ -805,8 +814,11 @@ function calculate_predcov!(dfj::DataFrame, consensus_df::DataFrame, predictors:
                         end
                     end
 
-                    # right arm
-                    if ismissing(gdfj[i][a, :r_provir_start_cor]) && ismissing(gdfj[i][a, :r_provir_end_cor])
+                    # right arm 
+                    # test if fragment on the right arm
+                    rdf_nrow = nrow(predcov_dict[key].rDF)
+                    if predcov_dict[key].rDF[1, :coordinates] <= gdfj[i][a, :provir_start_cor] && gdfj[i][a, :provir_end_cor] <= predcov_dict[key].rDF[rdf_nrow, :coordinates]
+                    #if ismissing(gdfj[i][a, :r_provir_start_cor]) && ismissing(gdfj[i][a, :r_provir_end_cor]).  # this is not a good test that the fragment is on the right arm, because it does not catches those prophage fragments that do not wrap themselves sthe ends of the contigs
                         shift =  predcov_dict[key].rDF[1, :coordinates] 
                         for j in gdfj[i][a, :provir_start_cor]:gdfj[i][a, :provir_end_cor]
                             row = j - shift + 1
@@ -816,7 +828,10 @@ function calculate_predcov!(dfj::DataFrame, consensus_df::DataFrame, predictors:
                         # left arm
                         shift =  predcov_dict[key].lDF[1, :coordinates] 
                         for j in gdfj[i][a, start_col]:gdfj[i][a, end_col]
+                            #println("Pos is $(gdfj[i][a, start_col])")
                             row = j - shift + 1
+                            #println("row is $row")
+                            #println(j)
                             predcov_dict[key].lDF[row, :pred_cov] += pc
                         end
                     end
@@ -870,7 +885,13 @@ end
 
 #consensus_df = calculate_predcov!(dfj, consensus_df, predictors, :contig_name, :virus_start, :virus_start, :virus_end, :virus_end, :virus_length)
 #consensus_df = calculate_predcov!(dfj, consensus_df, predictors, :provirus_name, :provir_start_cor, :provirus_start, :provir_end_cor, :provirus_end, :length)
+#=
+parentD = "/mnt/cephfs1/projects/DoViP_benchmarking/test_dataset/outputs/ALL_45_genomes_v1_+_ProspContig/"
+dfj_p = "/mnt/cephfs1/projects/DoViP_benchmarking/test_dataset/outputs/ALL_45_genomes_v1_+_ProspContig/03_I-01_checkV_Integrated/03_I-01_02_postcheckV1_integrated_cordf.tsv"
+inref = FnaP("00_All_min_length_1000/ALL_45_genomes_v1_+_ProspContig.fna")
+predictors = [:predictor_genomad, :predictor_virSorter2, :predictor_vibrant, :predictor_dvf, :predictor_viralVerify] =#
 
+#dfj = CSV.read(dfj_p, DataFrame; delim = '\t', header = 1)
 
 function merge_integrated!(inref::FnaP, checkV::ProjCheckVIntegrated, dfj::DataFrame, parentD::String) # I need to chck if the ouput files exist and if they are empty
 
@@ -879,7 +900,7 @@ function merge_integrated!(inref::FnaP, checkV::ProjCheckVIntegrated, dfj::DataF
         if ("splitprovir" in names(dfj) && ismissing(dfj[i, :splitprovir]) == false)
 
             actual_pred = Symbol()
-            for pred in checkV.predictors 
+            for pred in checkV.predictors
                 if String(pred) in names(dfj) && !ismissing(dfj[i, pred])
                     actual_pred = pred
                 end
@@ -897,7 +918,7 @@ function merge_integrated!(inref::FnaP, checkV::ProjCheckVIntegrated, dfj::DataF
     end
 
     # merge overlapping proviruses
-    consensus_df = group_proviruses!(dfj, checkV.predictors, checkV.merge_circ_proph)  # this is modifying the input df!!! I should save it again to the HDD
+    consensus_df = group_proviruses!(dfj, checkV.predictors, checkV.merge_circ_proph) #predictors, true)  # # this is modifying the input df!!! I should save it again to the HDD
     consensus_df[!, :virus_type_DoViP] = fill("Integrated", nrow(consensus_df))
 
     # bring provirus_name in dfj (it is missing for circular proviruses)
