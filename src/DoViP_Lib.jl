@@ -32,20 +32,20 @@ args = [
 ] =#
 #=
 args = [
-    "inref=/mnt/cephfs1/projects/DoViP_benchmarking/NCBI_dataset/inputs/ALL_45_genomes_v1_+_ProspContig.fasta", #/mnt/cephfs1/projects/DoViP_benchmarking/test_dataset/Bacteria-2_with_MORE_inserted_viruses.fasta",#/mnt/cephfs1/projects/DoViP_benchmarking/test_dataset/ALL_43_genomes_v1.fasta", #/mnt/cephfs1/projects/DoViP_benchmarking/test_dataset/all_NCBI_dataset_viruses.fasta",
+    "inref=/mnt/cephfs1/projects/DoViP_benchmarking/test_dataset/inputs_tests/P_2_5_SV21_Ref6_C07_MG_P_2_5_SE_S13_347_length_46575_cov_34.fna",   #/mnt/cephfs1/projects/Prospectomics/Prospectomics_Main_Feb2024/virus_doVIP.a/assembly.d/P_2-5_SV21-Ref6-C07_MG_P_2-5_SE_S13_min1000.fasta", 
     "pd_prefix=/mnt/cephfs1/projects/DoViP_benchmarking/test_dataset/outputs",
     "projtype=singleworkflow",
-    "sample_set=DoViP_test_Isol_Prospectomics_dataset",
+    "sample_set=DoViP_test_Prospectomics_dataset",
     "use_slurm=false",
     "continue=true",
     "stop_after_initial_predictors=false",
     "min_contig_length=1000",
     "merge_circ_proph=true",
-    #"user=CristinaM",
+    "user=CristinaM",
     
     # genomad related parameters
     "genomad_signal=use",
-    "genomad_res=/mnt/cephfs1/projects/DoViP_benchmarking/NCBI_dataset/outputs_stringent_DVF_th_predcov_mixed/ALL_45_genomes_v1/01a_ALL_genomad/01a_ALL_01_genomad_out", 
+    "genomad_res=/mnt/cephfs1/projects/Prospectomics/Prospectomics_Main_Feb2024/virus_doVIP.a/virus.a/P_2-5_SV21-Ref6-C07_MG_P_2-5_SE_S13/P_2-5_SV21-Ref6-C07_MG_P_2-5_SE_S13_genomad1.10", 
     "genomad_env=conda_genomad_v1.11",
     "genomadDB_p=/software/conda/databases/genomad_v1.11/genomad_db",
     "genomad_min_score=0.7",
@@ -55,7 +55,7 @@ args = [
     
     # DVF related parameters
     "DVF_signal=do",
-    "dvf_res=/mnt/cephfs1/projects/DoViP_benchmarking/NCBI_dataset/outputs_relaxed_DVF_th/ALL_45_genomes_v1/01b_ALL_DVF/01b_ALL_01_DVF_out",
+    "dvf_res=/mnt/cephfs1/projects/Prospectomics/Prospectomics_DoViP_viruspredictions/analysis_round5/b2/P_2-5_SV21-Ref6-C07_MG_P_2-5_SE_S13_min1000/01b_ALL_DVF/01b_ALL_01_DVF_out",
     "DVF_env=conda_DVF",
     "DVF_maxContigLen=2099000",
     "DVF_scoreTh=0.7",
@@ -67,7 +67,7 @@ args = [
     
     # virSorter2 related parameters
     "virSorter2_signal=use",
-    "virSorter2_res=/mnt/cephfs1/projects/DoViP_benchmarking/NCBI_dataset/outputs_stringent_DVF_th_predcov_mixed/ALL_45_genomes_v1/01c_ALL_virSorter2/01c_ALL_01_virSorter2_out", 
+    "virSorter2_res=/mnt/cephfs1/projects/Prospectomics/Prospectomics_DoViP_viruspredictions/analysis_round2/b2/P_2-5_SV21-Ref6-C07_MG_P_2-5_SE_S13_min1000/ALL-01c_virSorter2/ALL-01c_01_virSorter2_out", 
     "virSorter2_env=conda_virsorter2",
     "virSorter2DB_p=/mnt/XIO_3/data1/virsorter-data/virsorter2/db/", 
     "virSorter2_high_confidence_only=false",
@@ -78,7 +78,7 @@ args = [
     
     # VIBRANT related parameters
     "vibrant_signal=use",
-    "vibrant_res=/mnt/cephfs1/projects/DoViP_benchmarking/NCBI_dataset/outputs_stringent_DVF_th_predcov_mixed/ALL_45_genomes_v1/01d_ALL_vibrant/01d_ALL_01_vibrant_out", 
+    "vibrant_res=/mnt/cephfs1/projects/Prospectomics/Prospectomics_Main_Feb2024/virus_doVIP.a/virus.a/P_2-5_SV21-Ref6-C07_MG_P_2-5_SE_S13/P_2-5_SV21-Ref6-C07_MG_P_2-5_SE_S13_VIBRANT1.2.1", 
     "vibrant_env=conda_VIBRANT",
     "vibrant_p=/home/conda/software/VIBRANT/VIBRANT_run.py",
     "vibrantDB_p=/home/conda/software/VIBRANT/databases/",
@@ -88,7 +88,7 @@ args = [
     
     # viralVerify related parameters
     "viralVerify_signal=use",
-    "viralVerify_res=/mnt/cephfs1/projects/DoViP_benchmarking/NCBI_dataset/outputs_stringent_DVF_th_predcov_mixed/ALL_45_genomes_v1/01e_ALL_viralVerify/01e_ALL_01_viralVerify_out", 
+    "viralVerify_res=/mnt/cephfs1/projects/Prospectomics/Prospectomics_DoViP_viruspredictions/analysis_round2/b2/P_2-5_SV21-Ref6-C07_MG_P_2-5_SE_S13_min1000/ALL-01e_viralVerify/ALL-01e_01_viralVerify_out", 
     "viralVerify_env=conda_viralVerify",
     "viralVerifyDB_p=/software/conda/conda_viralVerify/DB/viralverifyDB_nbc_hmms.hmm",
     "viralVerify_p=/software/conda/conda_viralVerify/viralVerify/bin/viralverify",
@@ -102,7 +102,7 @@ args = [
     "checkvDB_p=/mnt/XIO_3/data1/CheckV/checkv-db-v1.5/",
     "checkv_sbatch_time=2-0",
     "checkv_cpus_per_task=2",
-    "checkv_sbatch_mem=20G",  
+    "checkv_sbatch_mem=20G", 
     
     #PhaTYP related parameters
     "phaTYP_env=conda_PhaBOX",
@@ -140,11 +140,6 @@ args = [
     "Int_th_completeness_CheckV_HMM=20"
 ]
 
-#
-if "--help" in args
-    println("DoViP - a workflow for virus prediction in metagenomes.")
-    show_file_content("../README.md")
-end
 
 println("Start DoViP!")
 proj = initialize_workflow(args, ProjSViP_fun)
@@ -157,5 +152,5 @@ end
 
 println("DoVip is done!")
 #endregion 
-=#
-#end
+#
+end =#

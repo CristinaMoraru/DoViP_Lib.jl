@@ -773,7 +773,7 @@ function calculate_predcov!(dfj::DataFrame, consensus_df::DataFrame, predictors:
     # initialize initialize_predcov_dict
     predcov_dict = initialize_predcov_dict(consensus_df, name_col, init_start_col, init_end_col, init_length_col)
 
-    # use dfj to calculate the "initial predictor" coverage for each merged pro-virus
+    #region calculate the "initial predictor" coverage for each merged pro-virus or mixed non-integrated viruses
     gdfj = groupby(dfj, name_col)
 
     for i in 1:length(gdfj)
@@ -782,15 +782,25 @@ function calculate_predcov!(dfj::DataFrame, consensus_df::DataFrame, predictors:
         key = gdfj[i][1, name_col]
 
         if nrow(gdfj[i]) == 1
-            predcov_dict[key].final_averagecov = 1.0
+            # this case is for nonintegrated viruses and for those integrated ones that come from the non-integrated branch
+            pc = 0
+            for p in predictors 
+                if string(p) in names(gdfj[i]) && !ismissing(gdfj[i][1, p]) && gdfj[i][1, p] == "yes"
+                    pc += 1
+                end
+            end
+            predcov_dict[key].final_averagecov = pc
             predcov_dict[key].final_standad_deviation_cov = 0
+
+            # that's the problem, right here 
+
         else # load predictor coverage at each position of the prophage
 
             if !occursin("_____", key)           # for linear prophages
                 shift =  predcov_dict[key].lDF[1, :coordinates] 
                 for a in 1:nrow(gdfj[i])
 
-                    # find if it has more than one predictos (e.g. when beeign transfered from teh non-integrated branch)
+                    # find if it has more than one predictos (e.g. when beeing transfered from the non-integrated branch)
                     pc = 0
                     for p in predictors 
                         if string(p) in names(gdfj[i]) && !ismissing(gdfj[i][a, p]) && gdfj[i][a, p] == "yes"
@@ -862,7 +872,9 @@ function calculate_predcov!(dfj::DataFrame, consensus_df::DataFrame, predictors:
         consensus_df[i, :predictor_average_coverage] = predcov_dict[key].final_averagecov
         consensus_df[i, :predictor_stddev_coverage] = predcov_dict[key].final_standad_deviation_cov
     end
-
+    #endregion
+    
+    #region calculate predictor coverage for the non-integrated viruses (that are not mixed)
     if name_col == :contig_name
         for i in 1:nrow(consensus_df)
             if consensus_df[i, :mixed] == ""
@@ -879,7 +891,7 @@ function calculate_predcov!(dfj::DataFrame, consensus_df::DataFrame, predictors:
             end
         end
     end
-
+    
     return consensus_df
 end
 
@@ -899,10 +911,11 @@ function merge_integrated!(inref::FnaP, checkV::ProjCheckVIntegrated, dfj::DataF
     for i in 1:nrow(dfj)
         if ("splitprovir" in names(dfj) && ismissing(dfj[i, :splitprovir]) == false)
 
-            actual_pred = Symbol()
+            # detect the initial predictors for this viral sequence
+            actual_pred = Vector{Symbol}()
             for pred in checkV.predictors
                 if String(pred) in names(dfj) && !ismissing(dfj[i, pred])
-                    actual_pred = pred
+                    push!(actual_pred, pred)
                 end
             end
 
@@ -910,8 +923,13 @@ function merge_integrated!(inref::FnaP, checkV::ProjCheckVIntegrated, dfj::DataF
                             :contig_name => dfj[i, :contig_name],
                             :splitprovir => dfj[i, :seq_name],
                             :provir_start_cor => dfj[i, :r_provir_start_cor],
-                            :provir_end_cor => dfj[i, :r_provir_end_cor],
-                            actual_pred => "yes")
+                            :provir_end_cor => dfj[i, :r_provir_end_cor]) #,
+
+            # add all initial predictors to the new row, so that coverage for the right arm of the prophage is correctly calculated
+            for key in actual_pred
+                newrow[key] = "yes"
+            end
+                           
 
             push!(dfj, newrow; cols = :union)
         end
@@ -1121,6 +1139,12 @@ function merge_postCheckV_phaTYP_nonIntegrated!(phatypdf_p::TableP, indf_p::Tabl
     return jdf
 end
 
+
+#=
+intMixed_tsv = CSV.read("/mnt/cephfs1/projects/DoViP_benchmarking/test_dataset/outputs/P_2-5_S13_provir/04_M_Detection/04_M_00_Mixed_Int_Viruses.tsv",
+DataFrame; delim = '\t', header = 1)
+nonintMixed_tsv = CSV.read("/mnt/cephfs1/projects/DoViP_benchmarking/test_dataset/outputs/P_2-5_S13_provir/04_M_Detection/04_M_00_Mixed_NonInt_Viruses.tsv",
+DataFrame; delim = '\t', header = 1) =#
 """
     transfer_predictors(nonintMixed_tsv::DataFrame, intMixed_tsv::DataFrame, predictors_v::Vector{Symbol})
     This function brings the predictor data from the mixedInt Df to the nonInt Df (Based on the idea that, if a contig was predicted as NONINTEGRATED by some initial predictors and confirmed by CheckV, 
@@ -1133,8 +1157,15 @@ function transfer_predictors(nonintMixed_tsv::DataFrame, intMixed_tsv::DataFrame
     nonintMixed_df[!, :check_mixed] = fill("", nrow(nonintMixed_df))
     nonintMixed_df[!, :orig_NonInt_predictors] = fill("", nrow(nonintMixed_df))
     
-    for i in 1:nrow(nonintMixed_df)
+    #Convert columns from MissingVector to vectors that can hold strings
+    for pred in predictors_v
+        if string(pred) in names(nonintMixed_df)
+            # Convert to Vector{Union{Missing, String}} to allow string assignments
+            nonintMixed_df[!, pred] = Vector{Union{Missing, String}}(nonintMixed_df[!, pred])
+        end    
+    end
 
+    for i in 1:nrow(nonintMixed_df)  
         # identify original NonInt predictors
         orig_pred_v = Vector{String}()
         for pred in predictors_v
@@ -1150,11 +1181,11 @@ function transfer_predictors(nonintMixed_tsv::DataFrame, intMixed_tsv::DataFrame
                 nonintMixed_df[i, :mixed] = "yes"
                 for pred in predictors_v
                     #println("i is $i, j is $j and pred is $pred")
-                    if ("$pred" in names(nonintMixed_df) && ismissing(nonintMixed_df[i, pred]) || nonintMixed_df[i, pred] == "") && ("$pred" in names(intMixed_tsv) && !ismissing(intMixed_tsv[j, pred]) && intMixed_tsv[j, pred]  == "yes")
+                    if ("$pred" in names(nonintMixed_df) && (ismissing(nonintMixed_df[i, pred]) || nonintMixed_df[i, pred] == "")) && ("$pred" in names(intMixed_tsv) && !ismissing(intMixed_tsv[j, pred]) && intMixed_tsv[j, pred]  == "yes")
                         nonintMixed_df[i, pred] = "yes"
                     end                            
                 end
-                # do not merge int-viruses with non-int viruses if the non-int are larger by more than 5 times than the int 
+                # Check if merge int-viruses with non-int viruses if the non-int are larger by more than 5 times than the int 
                 if (nonintMixed_df[i, :virus_length]/intMixed_tsv[j, :length]) > 4
                     nonintMixed_df[i, :check_mixed] = "yes"
                 end
@@ -1226,6 +1257,7 @@ function detect_mixed_virs(proj::ProjDetectMixedViruses, parentD::String)
         mixed_contigs = intersect(mixedNonInt_df[!, :contig_name], mixedInt_df[!, :contig_name])
 
         if length(mixed_contigs) != 0
+            # in the intDf, keep only contigs that are mixed (also in nonINtDF)
             for i in nrow(mixedInt_df):-1:1
                 if !(mixedInt_df[i, :contig_name] in mixed_contigs)
                     deleteat!(mixedInt_df, i)
@@ -1233,6 +1265,7 @@ function detect_mixed_virs(proj::ProjDetectMixedViruses, parentD::String)
             end
             CSV.write("$(parentD)/$(proj.outDf_mixed_Int_p.p)", mixedInt_df, delim = '\t', header = true)
 
+            # in the nonIntFD, keep only the contigs that are mixed (also in the IntDF)
             for i in nrow(mixedNonInt_df):-1:1
                 if !(mixedNonInt_df[i, :contig_name] in mixed_contigs)
                     deleteat!(mixedNonInt_df, i)
