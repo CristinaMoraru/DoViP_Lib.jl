@@ -13,29 +13,29 @@ import BioS_ProjsWFs.run_workflow!
 using BioS_SeqFuns
 using BioS_ExtTools
 
-include("DoViP_Lib_00_DT_structs.jl")
-include("DoViP_Lib_funs2.jl")
-include("DoViP_Lib_00_DT_MainProjConstructor.jl")
-include("DoViP_Lib_000_Run.jl")
-include("DoViP_Lib_funs1.jl")
+include("DoViP_Lib_00_DT_structs_VS.jl")
+include("DoViP_Lib_funs2_VS.jl")
+include("DoViP_Lib_00_DT_MainProjConstructor_VS.jl")
+include("DoViP_Lib_000_Run_VS.jl")
+include("DoViP_Lib_funs1_VS.jl")
 
-end # module DoViP_Lib
+#end # module DoViP_Lib
 
 
-#=
-#region to activate only for testing
+
+#=region to activate only for testing
 args = [
     "projtype=multipleworkflow",
     "spd=/mnt/cephfs1/projects/Prospectomics/Prospectomics_DoViP_viruspredictions/a_r6_o/b3",
-    "allrefs_params=/mnt/cephfs1/projects/Prospectomics/Prospectomics_DoViP_viruspredictions/params/round8/CLM_Prospectomics_DoViPv1.1.1_relaxedTh_b3.tsv",
-    "continue=true",
+    "allrefs_params=/mnt/cephfs1/projects/Prospectomics/Prospectomics_DoViP_viruspredictions/params/round6_ODIN/CLM_Prospectomics_DoViPv1.1.1_b3.tsv",
+    "continue=false",
 ] =#
 #=
 args = [
-    "inref=/mnt/cephfs1/projects/DoViP_benchmarking/test_dataset/inputs_tests/P_2_5_SV21_Ref6_C07_MG_P_2_5_SE_S13_347_length_46575_cov_34.fna",   #/mnt/cephfs1/projects/Prospectomics/Prospectomics_Main_Feb2024/virus_doVIP.a/assembly.d/P_2-5_SV21-Ref6-C07_MG_P_2-5_SE_S13_min1000.fasta", 
-    "pd_prefix=/mnt/cephfs1/projects/DoViP_benchmarking/test_dataset/outputs",
+    "inref=/mnt/cephfs1/projects/DeepH/MSI/MSI_MultiflockONT_2024/polish.d/assembly.d/Polish_MSImulti_ONT_min1000.fasta", #/mnt/cephfs1/projects/DeepH/MSI/Hybrid_assembly/assembly.d/MSI_hybridspades3.15.5_min1000.fasta", 
+    "pd_prefix=/mnt/cephfs1/projects/DeepH_virus_pred_DoViP/00_DoViPv1.0/analysis/test",
     "projtype=singleworkflow",
-    "sample_set=DoViP_test_Prospectomics_dataset",
+    "sample_set=DeepH_HiC",
     "use_slurm=false",
     "continue=true",
     "stop_after_initial_predictors=false",
@@ -45,7 +45,7 @@ args = [
     
     # genomad related parameters
     "genomad_signal=use",
-    "genomad_res=/mnt/cephfs1/projects/Prospectomics/Prospectomics_Main_Feb2024/virus_doVIP.a/virus.a/P_2-5_SV21-Ref6-C07_MG_P_2-5_SE_S13/P_2-5_SV21-Ref6-C07_MG_P_2-5_SE_S13_genomad1.10", 
+    "genomad_res=/path/to/res", 
     "genomad_env=conda_genomad_v1.11",
     "genomadDB_p=/software/conda/databases/genomad_v1.11/genomad_db",
     "genomad_min_score=0.7",
@@ -54,12 +54,12 @@ args = [
     "genomad_sbatch_mem=20G",
     
     # DVF related parameters
-    "DVF_signal=do",
-    "dvf_res=/mnt/cephfs1/projects/Prospectomics/Prospectomics_DoViP_viruspredictions/analysis_round5/b2/P_2-5_SV21-Ref6-C07_MG_P_2-5_SE_S13_min1000/01b_ALL_DVF/01b_ALL_01_DVF_out",
+    "DVF_signal=use",
+    "dvf_res=/path/to/res",
     "DVF_env=conda_DVF",
     "DVF_maxContigLen=2099000",
     "DVF_scoreTh=0.7",
-    "DVF_pThreshold=0.01",
+    "DVF_pThreshold=0.005",
     "DVF_p=/home/conda/software/DeepVirFinder/dvf.py",
     "DVF_sbatch_time=2-0",
     "DVF_cpus_per_task=15",
@@ -67,7 +67,7 @@ args = [
     
     # virSorter2 related parameters
     "virSorter2_signal=use",
-    "virSorter2_res=/mnt/cephfs1/projects/Prospectomics/Prospectomics_DoViP_viruspredictions/analysis_round2/b2/P_2-5_SV21-Ref6-C07_MG_P_2-5_SE_S13_min1000/ALL-01c_virSorter2/ALL-01c_01_virSorter2_out", 
+    "virSorter2_res=/path/to/res", 
     "virSorter2_env=conda_virsorter2",
     "virSorter2DB_p=/mnt/XIO_3/data1/virsorter-data/virsorter2/db/", 
     "virSorter2_high_confidence_only=false",
@@ -75,10 +75,14 @@ args = [
     "virSorter2_sbatch_time=4-0",
     "virSorter2_cpus_per_task=25",
     "virSorter2_sbatch_mem=20G",
+
+    # virSorter related parameters
+    "virSorter_signal=use_external",
+    "virSorter_res=/mnt/cephfs1/projects/DeepH/Hi_C_202503_MSI/Hi_C_Alti1_interaction/virsorter1/virsorter_out_polishedONT",  #/mnt/cephfs1/projects/DeepH/Hi_C_202503_MSI/Hi_C_Alti1_interaction/virsorter1/virsorter_out_polishedONT 
     
     # VIBRANT related parameters
-    "vibrant_signal=use",
-    "vibrant_res=/mnt/cephfs1/projects/Prospectomics/Prospectomics_Main_Feb2024/virus_doVIP.a/virus.a/P_2-5_SV21-Ref6-C07_MG_P_2-5_SE_S13/P_2-5_SV21-Ref6-C07_MG_P_2-5_SE_S13_VIBRANT1.2.1", 
+    "vibrant_signal=do",
+    "vibrant_res=/path/to/res", 
     "vibrant_env=conda_VIBRANT",
     "vibrant_p=/home/conda/software/VIBRANT/VIBRANT_run.py",
     "vibrantDB_p=/home/conda/software/VIBRANT/databases/",
@@ -87,8 +91,8 @@ args = [
     "vibrant_sbatch_mem=20G",
     
     # viralVerify related parameters
-    "viralVerify_signal=use",
-    "viralVerify_res=/mnt/cephfs1/projects/Prospectomics/Prospectomics_DoViP_viruspredictions/analysis_round2/b2/P_2-5_SV21-Ref6-C07_MG_P_2-5_SE_S13_min1000/ALL-01e_viralVerify/ALL-01e_01_viralVerify_out", 
+    "viralVerify_signal=do",
+    "viralVerify_res=/path/to/res", 
     "viralVerify_env=conda_viralVerify",
     "viralVerifyDB_p=/software/conda/conda_viralVerify/DB/viralverifyDB_nbc_hmms.hmm",
     "viralVerify_p=/software/conda/conda_viralVerify/viralVerify/bin/viralverify",
@@ -115,7 +119,7 @@ args = [
 
     # genomadTax
     "genomadtax_sbatch_time=2-0",
-    "genomadtax_cpus_per_task=15",
+    "genomadtax_cpus_per_task=40",
     "genomadtax_sbatch_mem=20",
     
     # Final thresholding related parameters for NON-INTEGRATED
@@ -152,5 +156,5 @@ end
 
 println("DoVip is done!")
 #endregion 
-=#
-#end
+#
+end =#
